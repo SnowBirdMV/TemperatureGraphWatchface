@@ -1,0 +1,114 @@
+{
+    "author": "Pebble",
+    "dependencies": {},
+    "keywords": [],
+    "name": "tutorial-3-3",
+    "pebble": {
+        "capabilities": [
+            "location",
+            "health"
+        ],
+        "displayName": "Tutorial-3-3",
+        "enableMultiJS": false,
+        "messageKeys": {
+            "cond0": 20,
+            "cond1": 21,
+            "cond10": 30,
+            "cond11": 31,
+            "cond12": 32,
+            "cond13": 33,
+            "cond14": 34,
+            "cond15": 35,
+            "cond16": 36,
+            "cond17": 37,
+            "cond18": 38,
+            "cond19": 39,
+            "cond2": 22,
+            "cond3": 23,
+            "cond4": 24,
+            "cond5": 25,
+            "cond6": 26,
+            "cond7": 27,
+            "cond8": 28,
+            "cond9": 29,
+            "temp0": 0,
+            "temp1": 1,
+            "temp10": 10,
+            "temp11": 11,
+            "temp12": 12,
+            "temp13": 13,
+            "temp14": 14,
+            "temp15": 15,
+            "temp16": 16,
+            "temp17": 17,
+            "temp18": 18,
+            "temp19": 19,
+            "temp2": 2,
+            "temp3": 3,
+            "temp4": 4,
+            "temp5": 5,
+            "temp6": 6,
+            "temp7": 7,
+            "temp8": 8,
+            "temp9": 9
+        },
+        "projectType": "native",
+        "resources": {
+            "media": [
+                {
+                    "file": "fonts/open-sans",
+                    "name": "OPEN_SANS_20",
+                    "targetPlatforms": null,
+                    "type": "font"
+                },
+                {
+                    "file": "images/Bluetooth_on",
+                    "name": "BLUETOOTH_ON",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/bluetooth_off",
+                    "name": "BLUETOOTH_OFF",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "characterRegex": "[0-9:]",
+                    "file": "fonts/Digital",
+                    "name": "DIGITAL_FONT_48",
+                    "targetPlatforms": null,
+                    "type": "font"
+                },
+                {
+                    "file": "images/background.png",
+                    "name": "IMAGE_BACKGROUND",
+                    "type": "bitmap"
+                },
+                {
+                    "compatibility": "2.7",
+                    "file": "fonts/perfect-dos-vga.ttf",
+                    "name": "FONT_PERFECT_DOS_20",
+                    "type": "font"
+                },
+                {
+                    "compatibility": "2.7",
+                    "file": "fonts/perfect-dos-vga.ttf",
+                    "name": "FONT_PERFECT_DOS_48",
+                    "type": "font"
+                }
+            ]
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk"
+        ],
+        "uuid": "41c53f8f-16da-4ba3-bf3e-a90aa036497e",
+        "watchapp": {
+            "watchface": true
+        }
+    },
+    "version": "1.0.0"
+}
