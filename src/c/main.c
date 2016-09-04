@@ -1,5 +1,6 @@
 #include <pebble.h>
 #include <stdio.h>
+#include <stdint.h>
 
 #define KEY_TEMPERATURE 0
 #define KEY_CONDITIONS 1
@@ -9,9 +10,7 @@ static TextLayer *s_time_layer;
 static TextLayer *s_weather_layer;
 static TextLayer *s_battery_charge_layer;
 static TextLayer *s_date_layer;
-static TextLayer *s_temps[20];
 static TextLayer *s_steps_layer;
-
 static Layer *s_graph_background;
 static Layer *s_grid_background;
 static Layer *s_battery_charge;
@@ -34,6 +33,7 @@ static GFont s_battery_font;
 static GFont s_weather_font;
 static GFont s_date_font;
 int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 static int batteryCharge = 0;
 static int s_step_count = 0, s_step_goal = 0, s_step_average = 0;
 
@@ -84,6 +84,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     
   // Store incoming information
 	static char temperature_buffer[8];
+    static char pop_buffer[8];
 	for (int i = 0; i < 8; i++){
 		temperature_buffer[i] = '#';
 	}
@@ -91,26 +92,38 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	static char weather_layer_buffer[32];
 	Tuple* temps [21];
 	Tuple* conds [21];
+    Tuple* pops [21];
 	char tempStrings[20][8];
+    char popStrings[20][8];
+    popStrings[0][0] = popStrings[0][0];
+    tempStrings[0][0] = tempStrings[0][0];
 	char conditionStrings[20];
-	printf("%c", tempStrings[0][0]);
-	printf("%d", conditionStrings[0]);
+    conditionStrings[0] = conditionStrings[0];
+	//printf("%d", conditionStrings[0]);
 	int tempInts[21];
 	for (int i = 0; i < 21; i++){
 		tempInts[i] = i;
 	}
 	for (int i = 0; i < 20; i++){
-		temps[i] = dict_find(iterator, i);
+		pops[i] = dict_find(iterator, i);
 		conds[i] = dict_find(iterator, i + 20);
+        temps[i] = dict_find(iterator, i + 40);
 	}
-
-
+    
+    
 	for (int i = 0; i < 20; i++){
 		snprintf(temperature_buffer, sizeof(temperature_buffer), "%dF", (int)temps[i]->value->int32);
-		tempInts[i] = (int)temps[i]->value->int32;
+        snprintf(pop_buffer, sizeof(pop_buffer), "%d", (int)temps[i]->value->int32);
+        popData[i] = (int)pops[i]->value->int32;
+        tempInts[i] = (int)temps[i]->value->int32;
+        printf("Temps ints: %d", tempInts[i]);
+        //int test = c.value;
+        printf("tempPopsi here is: %d", (int)popData[i]);
+        
 		for (int c = 0; c < 8; c++){
 	  //if (temperature_buffer[c] != '#'){
 			tempStrings[i][c] = temperature_buffer[c];
+            popStrings[i][c] = temperature_buffer[c];
 	  //printf("%c\tp ",tempStrings[i][c]);
 	  //fflush(stdout);
 	  //}
@@ -179,6 +192,13 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 	int y2 = size.h;
 	printf("%d, %d",x2 ,y2 );
 	int xDistance = x2/20;
+    graphics_context_set_stroke_color(ctx, GColorBlue);
+    int lastpoppoint = 50 - popData[0]/2;
+    for (int i = 0; i < 20; i++){
+        printf("popData: %d", 50 - popData[i]/2);
+        graphics_draw_line(ctx, GPoint(i * xDistance, lastpoppoint), GPoint((i + 1) * xDistance, 50 - popData[i]/2));
+        lastpoppoint = 50 - popData[i]/2;
+    }
 	graphics_context_set_stroke_color(ctx, GColorGreen);
 	graphics_draw_line(ctx, GPoint(0,0), GPoint(x2-1,0));
     //graphics_draw_line(ctx, GPoint(x2-1,0), GPoint(x2-1,y2-1));
@@ -231,10 +251,8 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
             
                 snprintf(graph_temp_buffer, sizeof(graph_temp_buffer), "%d", tempData[i]);
 	            printf("Displaying Temprature: %s", graph_temp_buffer);
-	            text_layer_set_text(s_temps[i], graph_temp_buffer);
                 int newY = points[i];
                 int shift = 0;
-                //layer_set_frame(text_layer_get_layer(s_temps[i]),GRect(i*xDistance, points[i] + 60, 20, 15));
                 int start = 0;
                 if (points[i] >= 20){
                     while (start < points[i-1] && start < points[i+1] ){
@@ -242,9 +260,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                         shift ++;
                     }
                     printf("i is: %d, shift is: %d", i, shift);
-                    layer_set_hidden(text_layer_get_layer(s_temps[i]), true);
                     graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, shift - 15 ,15, 15), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
-			        layer_set_frame(text_layer_get_layer(s_temps[i]),GRect(i*xDistance, shift - 15 + 61 ,15, 15));
                 }
                 else{
                     start = 50;
@@ -253,23 +269,18 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                         shift --;
                     }
                     printf("i is: %d, shift is: %d", i, shift);
-                    layer_set_hidden(text_layer_get_layer(s_temps[i]), true);
                     graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, 50 + shift,15, 15), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
-                    layer_set_frame(text_layer_get_layer(s_temps[i]),GRect(i*xDistance,  111 + shift, 15, 15));
                 }
             }
             
             
             
-			//text_layer_set_background_color(s_temps[i], GColorRed);
 
 			
 		}
 		lastY = points[i];
 	}
-    for (int i = 0; i < 20; i++){
-        layer_mark_dirty(text_layer_get_layer(s_temps[i]));
-    }
+
 	graphics_draw_line(ctx, GPoint((20)*xDistance,lastY), GPoint(x2,lastY));
 
 
@@ -556,22 +567,6 @@ static void main_window_load(Window *window) {
     
     update_step_average();
     
-    for(unsigned long i = 0; i < sizeof(s_temps) / sizeof(s_temps[0]); i++)
-	{
-		s_temps[i] = text_layer_create(GRect(-4, 61, 160, 50));
-		text_layer_set_background_color(s_temps[i], GColorClear);
-		text_layer_set_text_color(s_temps[i], GColorWhite);
-		text_layer_set_font( s_temps[i], s_battery_font);
-		//text_layer_set_text(s_temps[i], "00:00");
-        asc[i] = (char)97+i;
-        text_layer_set_text(s_temps[i], asc);
-		layer_add_child(window_layer,text_layer_get_layer(s_temps[i]));
-		
-	}
-    for (int i = 0; i < 20; i++){
-        printf("%s", text_layer_get_text(s_temps[i]));
-    }
-
 
 
 
