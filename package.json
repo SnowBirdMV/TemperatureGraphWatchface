@@ -56,6 +56,18 @@
         "resources": {
             "media": [
                 {
+                    "file": "images/Steps_below",
+                    "name": "STEPS_BELOW",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/Steps_above",
+                    "name": "STEPS_ABOVE",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
                     "file": "fonts/open-sans",
                     "name": "OPEN_SANS_20",
                     "targetPlatforms": null,

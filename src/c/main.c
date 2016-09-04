@@ -20,9 +20,13 @@ static Layer *s_battery_behind_clock;
 static BitmapLayer *s_background_layer;
 static BitmapLayer *s_bluetooth_image;
 static BitmapLayer *s_bluetooth_image_on;
+static BitmapLayer *s_steps_above_layer;
+static BitmapLayer *s_steps_below_layer;
 
 static GBitmap *s_bluetooth_on;
 static GBitmap *s_bluetooth_off;
+static GBitmap *s_steps_above_image;
+static GBitmap *s_steps_below_image;
 static GBitmap *s_background_bitmap;
 
 static GFont s_time_font;
@@ -31,6 +35,49 @@ static GFont s_weather_font;
 static GFont s_date_font;
 int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 static int batteryCharge = 0;
+static int s_step_count = 0, s_step_goal = 0, s_step_average = 0;
+
+
+bool step_data_is_available() {
+  return HealthServiceAccessibilityMaskAvailable &
+    health_service_metric_accessible(HealthMetricStepCount,
+      time_start_of_today(), time(NULL));
+}
+
+// Daily step goal
+static void get_step_goal() {
+  const time_t start = time_start_of_today();
+  const time_t end = start + SECONDS_PER_DAY;
+  s_step_goal = (int)health_service_sum_averaged(HealthMetricStepCount,
+    start, end, HealthServiceTimeScopeDaily);
+}
+
+// Todays current step count
+static void get_step_count() {
+  s_step_count = (int)health_service_sum_today(HealthMetricStepCount);
+}
+
+// Average daily step count for this time of day
+static void get_step_average() {
+  const time_t start = time_start_of_today();
+  const time_t end = time(NULL);
+  s_step_average = (int)health_service_sum_averaged(HealthMetricStepCount,
+    start, end, HealthServiceTimeScopeDaily);
+}
+
+static void update_step_average(){
+    get_step_goal();
+    get_step_count();
+    get_step_average();
+    if (s_step_average < s_step_count){
+        layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), false);
+        layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), true);
+    }
+    else{
+        layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), true);
+        layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), false);
+    }
+}
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     printf("%s", "Starting to Parse Weather Data");
@@ -334,11 +381,40 @@ static TextLayer* create_text_layer(){
 	text_layer_set_text(newLayer, "00:00");
 	return newLayer;
 }
+static void health_handler(HealthEventType event, void *context) {
+  // Which type of event occurred?
+  switch(event) {
+    case HealthEventSignificantUpdate:
+      APP_LOG(APP_LOG_LEVEL_INFO, 
+              "New HealthService HealthEventSignificantUpdate event");
+      update_step_average();
+      
+      break;
+    case HealthEventMovementUpdate:
+      APP_LOG(APP_LOG_LEVEL_INFO, 
+              "New HealthService HealthEventMovementUpdate event");
+      update_step_average();
+      break;
+    case HealthEventSleepUpdate:
+      APP_LOG(APP_LOG_LEVEL_INFO, 
+              "New HealthService HealthEventSleepUpdate event");
+      update_step_average();
+      break;
+    case HealthEventHeartRateUpdate:
+      break;
+    case HealthEventMetricAlert:
+      break;
+  }
+}
 
 static void main_window_load(Window *window) {
   // Get information about the Window
 	Layer *window_layer = window_get_root_layer(window);
 	GRect bounds = layer_get_bounds(window_layer);
+    
+    get_step_average();
+    get_step_count();
+    get_step_goal();
     
     // Create GFont
 	s_time_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_DIGITAL_FONT_48));
@@ -446,10 +522,10 @@ static void main_window_load(Window *window) {
 	text_layer_set_font(s_date_layer, s_date_font);
 	layer_add_child(window_layer,text_layer_get_layer(s_date_layer));
     
-    s_steps_layer = text_layer_create(GRect(0, 111, 144, 25));
+    s_steps_layer = text_layer_create(GRect(20, 105, 40, 25));
     text_layer_set_background_color(s_steps_layer, GColorClear);
 	text_layer_set_text_color(s_steps_layer, GColorWhite);
-	text_layer_set_text_alignment(s_steps_layer, GTextAlignmentCenter);
+	text_layer_set_text_alignment(s_steps_layer, GTextAlignmentLeft);
     text_layer_set_font(s_steps_layer, s_date_font);
     static char stepBuffer[10];
     snprintf(stepBuffer, sizeof(stepBuffer), "%d", (int)health_service_sum_today(HealthMetricStepCount));
@@ -465,6 +541,20 @@ static void main_window_load(Window *window) {
 	strftime(date_buffer,80,"%a, %d/%m/%y", info);
 	printf("Formatted date & time : |%s| hello\n", date_buffer );
 	text_layer_set_text(s_date_layer, date_buffer );
+    
+    s_steps_above_image = gbitmap_create_with_resource(RESOURCE_ID_STEPS_ABOVE);
+	s_steps_above_layer = bitmap_layer_create(bounds);
+	bitmap_layer_set_bitmap(s_steps_above_layer, s_steps_above_image);
+	layer_set_frame(bitmap_layer_get_layer(s_steps_above_layer), GRect(0, 111, 20, 20));
+	layer_add_child(window_layer,bitmap_layer_get_layer(s_steps_above_layer));
+    
+    s_steps_below_image = gbitmap_create_with_resource(RESOURCE_ID_STEPS_BELOW);
+	s_steps_below_layer = bitmap_layer_create(bounds);
+	bitmap_layer_set_bitmap(s_steps_below_layer, s_steps_below_image);
+	layer_set_frame(bitmap_layer_get_layer(s_steps_below_layer), GRect(0, 111, 20, 20));
+	layer_add_child(window_layer,bitmap_layer_get_layer(s_steps_below_layer));
+    
+    update_step_average();
     
     for(unsigned long i = 0; i < sizeof(s_temps) / sizeof(s_temps[0]); i++)
 	{
@@ -490,7 +580,18 @@ static void main_window_load(Window *window) {
 		.pebblekit_connection_handler = kit_connection_handler
 	});
 	printf("%s", "After registering for connection service");
+    
+    
+    #if defined(PBL_HEALTH)
+    health_service_events_subscribe(health_handler, NULL);
+    if(!health_service_events_subscribe(health_handler, NULL)) {
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Health not available!");
+    }
+    #else
+    APP_LOG(APP_LOG_LEVEL_ERROR, "Health not available!");
+    #endif
 
+    
 	battery_state_service_subscribe(battery_handler);
   // Add it as a child layer to the Window's root layer
 	layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
