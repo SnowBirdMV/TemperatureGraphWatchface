@@ -10,6 +10,7 @@ static TextLayer *s_weather_layer;
 static TextLayer *s_battery_charge_layer;
 static TextLayer *s_date_layer;
 static TextLayer *s_temps[20];
+static TextLayer *s_steps_layer;
 
 static Layer *s_graph_background;
 static Layer *s_grid_background;
@@ -78,11 +79,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	//printf("%s",conditions_buffer);
 	//printf("%s",conditionStrings[i]);
 	}
-	for (int i = 0; i < 20; i++){
-		for (int c = 0; c < 8; c++){
-	//printf("%c ", tempStrings[i][c]);
-		}
-	}
+
 	for (int i = 0; i < 20; i++){
 		tempData[i] = tempInts[i];
 	}
@@ -163,33 +160,65 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 	int offset = ((max - min + 2)/2) + (y2 / 2) - min;
 	printf("Scaling the graph by %d, offsetting by %d test %d", scale, offset, (y2/(1000*(max-min))));
 	graphics_context_set_stroke_color(ctx, GColorRed);
-	for (int i = 0; i < 20; i++){
-		int diff = ((max - min) / 2) + min;
+    int points[21];
+    int diff1 = ((max - min) / 2) + min;
+	diff1 = (diff1 + ((y2 / 2 - diff1) * 2.4) - 25) * -1;
+	int pointY1= tempData[0] + ((y2 / 2 - tempData[0]) * 2.4);
+	points[0] = pointY1 + diff1;
+    lastY = points[0];
+    int diffs[20];
+    for (int i = 0; i < 20; i++){
+        int diff = ((max - min) / 2) + min;
 		diff = (diff + ((y2 / 2 - diff) * 2.4) - 25) * -1;
 		int pointY= tempData[i] + ((y2 / 2 - tempData[i]) * 2.4);
 		int newPointY = pointY + diff;
-		printf("newPointY %d, pointY %d, tempDatai %d, y2 %d, diff %d", newPointY, pointY, tempData[i], y2, diff);
-		graphics_draw_line(ctx, GPoint((i-1)*xDistance,lastY), GPoint(i*xDistance,newPointY));
-		graphics_draw_line(ctx, GPoint((i-1)*xDistance,lastY+1), GPoint(i*xDistance,newPointY+1));
+        points[i] = newPointY;
+    }
+	for (int i = 0; i < 20; i++){
+		printf("newPointY %d, tempDatai %d, y2 %d, diff %d", points[i], tempData[i], y2, diffs[i]);
+		graphics_draw_line(ctx, GPoint((i-1)*xDistance,lastY), GPoint(i*xDistance,points[i]));
+		graphics_draw_line(ctx, GPoint((i-1)*xDistance,lastY+1), GPoint(i*xDistance,points[i]+1));
 		if (i % 4 == 0){
-            printf("%s", "Hi-2");
-			layer_set_frame(text_layer_get_layer(s_temps[i]),GRect(i*xDistance, newPointY - 15 + 60, 20, 15));
+            if (i != 20){
+                static char graph_temp_buffer[10];
             
-            printf("%s", "Hi-1");
+                snprintf(graph_temp_buffer, sizeof(graph_temp_buffer), "%d", tempData[i]);
+	            printf("Displaying Temprature: %s", graph_temp_buffer);
+	            text_layer_set_text(s_temps[i], graph_temp_buffer);
+                int newY = points[i];
+                int shift = 0;
+                //layer_set_frame(text_layer_get_layer(s_temps[i]),GRect(i*xDistance, points[i] + 60, 20, 15));
+                int start = 0;
+                if (points[i] >= 20){
+                    while (start < points[i-1] && start < points[i+1] ){
+                        start ++;
+                        shift ++;
+                    }
+                    printf("i is: %d, shift is: %d", i, shift);
+                    layer_set_hidden(text_layer_get_layer(s_temps[i]), true);
+                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, shift - 15 ,15, 15), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
+			        layer_set_frame(text_layer_get_layer(s_temps[i]),GRect(i*xDistance, shift - 15 + 61 ,15, 15));
+                }
+                else{
+                    start = 50;
+                    while (start > points[i-1] && start > points[i+1]){
+                        start --;
+                        shift --;
+                    }
+                    printf("i is: %d, shift is: %d", i, shift);
+                    layer_set_hidden(text_layer_get_layer(s_temps[i]), true);
+                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, 50 + shift,15, 15), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
+                    layer_set_frame(text_layer_get_layer(s_temps[i]),GRect(i*xDistance,  111 + shift, 15, 15));
+                }
+            }
+            
+            
+            
 			//text_layer_set_background_color(s_temps[i], GColorRed);
-			printf("%s", "Hi");
 
-			static char graph_temp_buffer[100];
-			printf("%s", "Hi2");
-			snprintf(graph_temp_buffer, sizeof(graph_temp_buffer), "%d", tempData[0]);
-			printf("%s", "Hi3");
-			printf("Displaying Temprature: %s", graph_temp_buffer);
-			printf("%s", "Hi4");
-	        text_layer_set_text(s_temps[i], graph_temp_buffer);
-            printf("%s", "Hi5");
-			layer_mark_dirty(text_layer_get_layer(s_temps[i]));
+			
 		}
-		lastY = newPointY;
+		lastY = points[i];
 	}
     for (int i = 0; i < 20; i++){
         layer_mark_dirty(text_layer_get_layer(s_temps[i]));
@@ -348,7 +377,7 @@ static void main_window_load(Window *window) {
 
   // Create temperature Layer
 	s_weather_layer = text_layer_create(
-		GRect(0, PBL_IF_ROUND_ELSE(125, 120), bounds.size.w, 25));
+		GRect(0, 140, bounds.size.w, 25));
 
 
   // Style the text
@@ -416,10 +445,21 @@ static void main_window_load(Window *window) {
 	text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
 	text_layer_set_font(s_date_layer, s_date_font);
 	layer_add_child(window_layer,text_layer_get_layer(s_date_layer));
-
+    
+    s_steps_layer = text_layer_create(GRect(0, 111, 144, 25));
+    text_layer_set_background_color(s_steps_layer, GColorClear);
+	text_layer_set_text_color(s_steps_layer, GColorWhite);
+	text_layer_set_text_alignment(s_steps_layer, GTextAlignmentCenter);
+    text_layer_set_font(s_steps_layer, s_date_font);
+    static char stepBuffer[10];
+    snprintf(stepBuffer, sizeof(stepBuffer), "%d", (int)health_service_sum_today(HealthMetricStepCount));
+    text_layer_set_text(s_steps_layer, stepBuffer);
+    layer_add_child(window_layer,text_layer_get_layer(s_steps_layer));
+    
 	time_t rawtime;
 	struct tm *info;
 	char date_buffer[80];
+    char asc[20];
 	time( &rawtime );
 	info = localtime( &rawtime );
 	strftime(date_buffer,80,"%a, %d/%m/%y", info);
@@ -433,9 +473,14 @@ static void main_window_load(Window *window) {
 		text_layer_set_text_color(s_temps[i], GColorWhite);
 		text_layer_set_font( s_temps[i], s_battery_font);
 		//text_layer_set_text(s_temps[i], "00:00");
+        asc[i] = (char)97+i;
+        text_layer_set_text(s_temps[i], asc);
 		layer_add_child(window_layer,text_layer_get_layer(s_temps[i]));
 		
 	}
+    for (int i = 0; i < 20; i++){
+        printf("%s", text_layer_get_text(s_temps[i]));
+    }
 
 
 
