@@ -32,8 +32,20 @@ static GFont s_time_font;
 static GFont s_battery_font;
 static GFont s_weather_font;
 static GFont s_date_font;
+static GFont s_weather_font;
+
 int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+
+static GPath *popPath = NULL;
+static const GPathInfo popPathInfo = {
+    .num_points = 20,
+    .points = (GPoint []) {{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
+                          {0, 0}, {0, 0}, {0, 0}, {0, 0}, 
+                          {0, 0}, {0, 0}, {0, 0}, {0, 0}, 
+                          {0, 0}, {0, 0}, {0, 0}, {0, 0}, 
+                          {0, 0}, {0, 0}, {0, 0}, {0, 0}, }};
+
 static int batteryCharge = 0;
 static int s_step_count = 0, s_step_goal = 0, s_step_average = 0;
 
@@ -151,7 +163,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   //printf("%c, %c", tempStrings[0][0], conditionStrings[0]);
 	snprintf(weather_layer_buffer, sizeof(weather_layer_buffer), "%s, %s", tempDisplayBuffer, condDisplayBuffer);
   //printf("%s",weather_layer_buffer);
-    printf("%s", "currently Parsing Weather Data");
+    //printf("%s", "currently Parsing Weather Data");
 	text_layer_set_text(s_weather_layer, weather_layer_buffer);
     printf("%s", "Finished Parsing Weather Data");
     layer_mark_dirty(s_graph_background);
@@ -193,12 +205,16 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 	printf("%d, %d",x2 ,y2 );
 	int xDistance = x2/20;
     graphics_context_set_stroke_color(ctx, GColorBlue);
+    graphics_context_set_fill_color(ctx, GColorBlue);
     int lastpoppoint = 50 - popData[0]/2;
     for (int i = 0; i < 20; i++){
         printf("popData: %d", 50 - popData[i]/2);
         graphics_draw_line(ctx, GPoint(i * xDistance, lastpoppoint), GPoint((i + 1) * xDistance, 50 - popData[i]/2));
+        popPathInfo.points[i] = GPoint((i + 1) * xDistance, 50 - popData[i]/2);
         lastpoppoint = 50 - popData[i]/2;
     }
+    popPath = gpath_create(&popPathInfo);
+    gpath_draw_filled(ctx, popPath);
 	graphics_context_set_stroke_color(ctx, GColorGreen);
 	graphics_draw_line(ctx, GPoint(0,0), GPoint(x2-1,0));
     //graphics_draw_line(ctx, GPoint(x2-1,0), GPoint(x2-1,y2-1));
@@ -260,7 +276,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                         shift ++;
                     }
                     printf("i is: %d, shift is: %d", i, shift);
-                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, shift - 15 ,15, 15), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
+                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, shift - 18 ,18, 18), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
                 }
                 else{
                     start = 50;
@@ -269,7 +285,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                         shift --;
                     }
                     printf("i is: %d, shift is: %d", i, shift);
-                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, 50 + shift,15, 15), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
+                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, 50 + shift,18, 18), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
                 }
             }
             
@@ -431,6 +447,7 @@ static void main_window_load(Window *window) {
 	s_time_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_DIGITAL_FONT_48));
 	s_date_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
 	s_battery_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+    s_weather_font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
 	
 
 	s_battery_behind_clock = layer_create(GRect(0, 0, 110, 40));
@@ -479,7 +496,7 @@ static void main_window_load(Window *window) {
 	layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_weather_layer));
 
 	s_graph_background = layer_create(bounds);
-	layer_set_frame(s_graph_background, GRect(-4, 61, 160, 50));
+	layer_set_frame(s_graph_background, GRect(-1, 61, 160, 50));
 	layer_set_update_proc(s_graph_background, graph_bounds_layer_update_proc);
 	layer_add_child(window_layer, s_graph_background);
 
