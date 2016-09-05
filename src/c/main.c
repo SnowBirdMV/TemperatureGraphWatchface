@@ -106,9 +106,9 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", (int)dict_find(iterator, 60)->value->int32);
     text_layer_set_text(s_humidity_layer, humidity_buffer);
     
-	Tuple* temps [21];
-	Tuple* conds [21];
-    Tuple* pops [21];
+	Tuple* temps [20];
+	Tuple* conds [20];
+    Tuple* pops [20];
 	char conditionStrings[20];
     conditionStrings[0] = conditionStrings[0];
 	int tempInts[21];
@@ -142,11 +142,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	static char condDisplayBuffer[8];
 	snprintf(tempDisplayBuffer, sizeof(tempDisplayBuffer), "%dF", (int)temps[0]->value->int32);
 	snprintf(condDisplayBuffer, sizeof(condDisplayBuffer), "%s", conds[0]->value->cstring);
-	// Assemble full string and display
-  //printf("%c, %c", tempStrings[0][0], conditionStrings[0]);
 	snprintf(weather_layer_buffer, sizeof(weather_layer_buffer), "%s, %s", tempDisplayBuffer, condDisplayBuffer);
-  //printf("%s",weather_layer_buffer);
-    //printf("%s", "currently Parsing Weather Data");
 	text_layer_set_text(s_weather_layer, weather_layer_buffer);
     printf("%s", "Finished Parsing Weather Data");
     layer_mark_dirty(s_graph_background);
@@ -247,7 +243,6 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 		if (i % 4 == 0){
             if (i != 20){
                 static char graph_temp_buffer[10];
-            
                 snprintf(graph_temp_buffer, sizeof(graph_temp_buffer), "%d", tempData[i]);
 	            printf("Displaying Temprature: %s", graph_temp_buffer);
                 int newY = points[i];
@@ -270,12 +265,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                     printf("i is: %d, shift is: %d", i, shift);
                     graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, 50 + shift,18, 18), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
                 }
-            }
-            
-            
-            
-
-			
+            }	
 		}
 		lastY = points[i];
 	}
@@ -294,21 +284,13 @@ static void grid_update_proc(Layer *layer, GContext *ctx){
 }
 
 static void battery_charge_update_proc(Layer *layer, GContext *ctx){
-	GRect graphLayerBounds = layer_get_frame(s_battery_charge);
-	int x2 = graphLayerBounds.size.w;
-	int y2 = graphLayerBounds.size.w;
-	
-  // Peek at the current battery state
+    // Peek at the current battery state
 	BatteryChargeState state = battery_state_service_peek();
-
+    
 	graphics_context_set_stroke_color(ctx, GColorGreen);
 	graphics_context_set_fill_color(ctx, GColorGreen);
-	printf("Battery Charge = %d", state.charge_percent);
-	for (int i = 0; i < 3; i++){
-		
-	}
 	graphics_fill_rect(ctx, GRect(5, 25, 10, -1*state.charge_percent*.2), 0, GCornerNone);
-	
+    
 	graphics_context_set_stroke_color(ctx, GColorWhite);
 	graphics_draw_line(ctx, GPoint(5,5), GPoint(5,25));
 	graphics_draw_line(ctx, GPoint(5,25), GPoint(15,25));
