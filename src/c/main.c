@@ -83,13 +83,16 @@ static void update_step_average(){
     get_step_goal();
     get_step_count();
     get_step_average();
+    printf("s_step_cpout: %d, s_step_average: %d, s_step_goal: %d", s_step_count, s_step_average, s_step_goal);
     if (s_step_average < s_step_count){
         layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), false);
         layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), true);
+        printf("You are now above your step average");
     }
     else{
         layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), true);
         layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), false);
+        printf("You are now below your step average");
     }
 }
 
@@ -127,10 +130,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         snprintf(pop_buffer, sizeof(pop_buffer), "%d", (int)temps[i]->value->int32);
         popData[i] = (int)pops[i]->value->int32;
         tempInts[i] = (int)temps[i]->value->int32;
-        printf("Temps ints: %d", tempInts[i]);
         tempData[i] = tempInts[i];
         //int test = c.value;
-        printf("tempPopsi here is: %d", (int)popData[i]);
         
 	}
 	for (int i = 0; i < 20; i++){
@@ -177,17 +178,14 @@ static void update_time() {
 static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
   // Custom drawing happens here
 	GRect graphLayerBounds = layer_get_frame(s_graph_background);
-	GPoint topLeft = graphLayerBounds.origin;
 	GSize size = graphLayerBounds.size;
 	int x2 = size.w;
 	int y2 = size.h;
-	printf("%d, %d",x2 ,y2 );
 	int xDistance = x2/20;
     graphics_context_set_stroke_color(ctx, GColorBlue);
     graphics_context_set_fill_color(ctx, GColorBlue);
     int lastpoppoint = 50 - popData[0]/2;
     for (int i = 0; i < 20; i++){
-        printf("popData: %d", 50 - popData[i]/2);
         graphics_draw_line(ctx, GPoint(i * xDistance, lastpoppoint), GPoint((i + 1) * xDistance, 50 - popData[i]/2));
         popPathInfo.points[i] = GPoint((i + 1) * xDistance, 50 - popData[i]/2);
         lastpoppoint = 50 - popData[i]/2;
@@ -237,15 +235,13 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
         points[i] = newPointY;
     }
 	for (int i = 0; i < 20; i++){
-		printf("newPointY %d, tempDatai %d, y2 %d, diff %d", points[i], tempData[i], y2, diffs[i]);
+		//printf("newPointY %d, tempDatai %d, y2 %d, diff %d", points[i], tempData[i], y2, diffs[i]);
 		graphics_draw_line(ctx, GPoint((i-1)*xDistance,lastY), GPoint(i*xDistance,points[i]));
 		graphics_draw_line(ctx, GPoint((i-1)*xDistance,lastY+1), GPoint(i*xDistance,points[i]+1));
 		if (i % 4 == 0){
             if (i != 20){
                 static char graph_temp_buffer[10];
                 snprintf(graph_temp_buffer, sizeof(graph_temp_buffer), "%d", tempData[i]);
-	            printf("Displaying Temprature: %s", graph_temp_buffer);
-                int newY = points[i];
                 int shift = 0;
                 int start = 0;
                 if (points[i] >= 20){
@@ -253,7 +249,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                         start ++;
                         shift ++;
                     }
-                    printf("i is: %d, shift is: %d", i, shift);
+                    //printf("i is: %d, shift is: %d", i, shift);
                     graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, shift - 18 ,18, 18), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
                 }
                 else{
@@ -262,7 +258,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                         start --;
                         shift --;
                     }
-                    printf("i is: %d, shift is: %d", i, shift);
+                    //printf("i is: %d, shift is: %d", i, shift);
                     graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, 50 + shift,18, 18), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
                 }
             }	
@@ -366,15 +362,6 @@ static void kit_connection_handler(bool connected) {
 	APP_LOG(APP_LOG_LEVEL_INFO, "PebbleKit %sconnected", connected ? "" : "dis");
 }
 
-static TextLayer* create_text_layer(){
-	static TextLayer *newLayer;
-	newLayer = text_layer_create(GRect(-4, 61, 160, 50));
-	text_layer_set_background_color(newLayer, GColorClear);
-	text_layer_set_text_color(newLayer, GColorWhite);
-	text_layer_set_font( newLayer, s_battery_font);
-	text_layer_set_text(newLayer, "00:00");
-	return newLayer;
-}
 static void health_handler(HealthEventType event, void *context) {
   // Which type of event occurred?
   switch(event) {
@@ -537,11 +524,10 @@ static void main_window_load(Window *window) {
 	time_t rawtime;
 	struct tm *info;
 	char date_buffer[80];
-    char asc[20];
 	time( &rawtime );
 	info = localtime( &rawtime );
 	strftime(date_buffer,80,"%a, %d/%m/%y", info);
-	printf("Formatted date & time : |%s| hello\n", date_buffer );
+	printf("Formatted date & time : |%s|\n", date_buffer );
 	text_layer_set_text(s_date_layer, date_buffer );
     
     s_steps_above_image = gbitmap_create_with_resource(RESOURCE_ID_STEPS_ABOVE);
@@ -573,7 +559,7 @@ static void main_window_load(Window *window) {
 		.pebble_app_connection_handler = app_connection_handler,
 		.pebblekit_connection_handler = kit_connection_handler
 	});
-	printf("%s", "After registering for connection service");
+	//printf("%s", "After registering for connection service");
     
     
     #if defined(PBL_HEALTH)
@@ -646,14 +632,14 @@ static void init() {
 	
 
     printf("%s", "Registering callbacks");
-  // Register callbacks
+    // Register callbacks
 	app_message_register_inbox_received(inbox_received_callback);
 	app_message_register_inbox_dropped(inbox_dropped_callback);
 	app_message_register_outbox_failed(outbox_failed_callback);
 	app_message_register_outbox_sent(outbox_sent_callback);
     printf("%s", "Finished Registering callbacks");
 
-  // Open AppMessage
+    // Open AppMessage
 	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
     printf("%s", "Opened AppMessage");
 }

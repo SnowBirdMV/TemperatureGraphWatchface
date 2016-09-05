@@ -22,7 +22,7 @@ function locationSuccess(pos) {
 			var json = JSON.parse(responseText);
 
 			// Temperature in Kelvin requires adjustment
-			console.log(json.hourly_forecast[0].temp.english);
+			//console.log(json.hourly_forecast[0].temp.english);
 			var dictionary = {};
             var humidity = parseInt(json.hourly_forecast[0].humidity);
             dictionary["humidity"] = humidity;
@@ -32,9 +32,9 @@ function locationSuccess(pos) {
 				
 				// Conditions
 				var conditions = json.hourly_forecast[i].icon;
-				console.log(json.hourly_forecast[i].icon);
+				//console.log(json.hourly_forecast[i].icon);
 				var pop = parseInt(json.hourly_forecast[i].pop);
-					console.log(pop);
+					//console.log(pop);
 				dictionary["temp" + i] = temperature;
 				dictionary["cond" + i] = conditions;
 				dictionary["pop" + i] = pop;
