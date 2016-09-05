@@ -24,6 +24,8 @@ function locationSuccess(pos) {
 			// Temperature in Kelvin requires adjustment
 			console.log(json.hourly_forecast[0].temp.english);
 			var dictionary = {};
+            var humidity = parseInt(json.hourly_forecast[0].humidity);
+            dictionary["humidity"] = humidity;
 			for (var i = 0; i < 20; i++){
 				var temperature = Math.round(json.hourly_forecast[i].temp.english);
 				//console.log("Temperature is " + temperature);

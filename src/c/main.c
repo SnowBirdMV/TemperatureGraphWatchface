@@ -15,6 +15,7 @@ static Layer *s_graph_background;
 static Layer *s_grid_background;
 static Layer *s_battery_charge;
 static Layer *s_battery_behind_clock;
+static TextLayer *s_humidity_layer;
 
 static BitmapLayer *s_background_layer;
 static BitmapLayer *s_bluetooth_image;
@@ -36,6 +37,7 @@ static GFont s_weather_font;
 
 int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+int curent_humidity = 0;
 
 static GPath *popPath = NULL;
 static const GPathInfo popPathInfo = {
@@ -102,6 +104,17 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	}
 	static char conditions_buffer[32];
 	static char weather_layer_buffer[32];
+    
+
+    printf("%s", "Hello1");
+    static char humidity_buffer[10];
+    printf("%s", "Hello2");
+    printf("This is a test kpjuahedrfgpikujaedsriughpaerhojikpghiouyaertyihpuoasegr: %d", (int)dict_find(iterator, 60)->value->int32);
+    snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", (int)dict_find(iterator, 60)->value->int32);
+    printf("%s", "Hello3");
+    text_layer_set_text(s_humidity_layer, humidity_buffer);
+    printf("%s", "Hello4");
+    
 	Tuple* temps [21];
 	Tuple* conds [21];
     Tuple* pops [21];
@@ -306,6 +319,8 @@ static void grid_update_proc(Layer *layer, GContext *ctx){
 	graphics_draw_line(ctx, GPoint(0,40), GPoint(155,40));
 	graphics_draw_line(ctx, GPoint(110,0), GPoint(110,40));
 	graphics_draw_line(ctx, GPoint(110,26), GPoint(155,26));
+    graphics_draw_line(ctx, GPoint(0,131), GPoint(155,131));
+    graphics_draw_line(ctx, GPoint(75,131), GPoint(75,111));
 }
 
 static void battery_charge_update_proc(Layer *layer, GContext *ctx){
@@ -433,6 +448,13 @@ static void health_handler(HealthEventType event, void *context) {
       break;
   }
 }
+
+static void update_humidity(){
+    static char humidity_buffer[10];
+    snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", curent_humidity);
+    text_layer_set_text(s_humidity_layer, humidity_buffer);
+}
+
 
 static void main_window_load(Window *window) {
   // Get information about the Window
@@ -583,6 +605,14 @@ static void main_window_load(Window *window) {
 	layer_add_child(window_layer,bitmap_layer_get_layer(s_steps_below_layer));
     
     update_step_average();
+    
+    s_humidity_layer = text_layer_create(GRect(78, 105, 40, 25));
+    text_layer_set_background_color(s_humidity_layer, GColorClear);
+	text_layer_set_text_color(s_humidity_layer, GColorWhite);
+	text_layer_set_text_alignment(s_humidity_layer, GTextAlignmentLeft);
+    text_layer_set_font(s_humidity_layer, s_date_font);
+    layer_add_child(window_layer,text_layer_get_layer(s_humidity_layer));
+    update_humidity();
     
 
 
