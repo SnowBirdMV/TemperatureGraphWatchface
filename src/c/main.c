@@ -98,33 +98,19 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     
   // Store incoming information
 	static char temperature_buffer[8];
-    static char pop_buffer[8];
-	for (int i = 0; i < 8; i++){
-		temperature_buffer[i] = '#';
-	}
 	static char conditions_buffer[32];
 	static char weather_layer_buffer[32];
-    
-
-    printf("%s", "Hello1");
     static char humidity_buffer[10];
-    printf("%s", "Hello2");
-    printf("This is a test kpjuahedrfgpikujaedsriughpaerhojikpghiouyaertyihpuoasegr: %d", (int)dict_find(iterator, 60)->value->int32);
+    static char pop_buffer[10];
+    
     snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", (int)dict_find(iterator, 60)->value->int32);
-    printf("%s", "Hello3");
     text_layer_set_text(s_humidity_layer, humidity_buffer);
-    printf("%s", "Hello4");
     
 	Tuple* temps [21];
 	Tuple* conds [21];
     Tuple* pops [21];
-	char tempStrings[20][8];
-    char popStrings[20][8];
-    popStrings[0][0] = popStrings[0][0];
-    tempStrings[0][0] = tempStrings[0][0];
 	char conditionStrings[20];
     conditionStrings[0] = conditionStrings[0];
-	//printf("%d", conditionStrings[0]);
 	int tempInts[21];
 	for (int i = 0; i < 21; i++){
 		tempInts[i] = i;
@@ -142,32 +128,16 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         popData[i] = (int)pops[i]->value->int32;
         tempInts[i] = (int)temps[i]->value->int32;
         printf("Temps ints: %d", tempInts[i]);
+        tempData[i] = tempInts[i];
         //int test = c.value;
         printf("tempPopsi here is: %d", (int)popData[i]);
         
-		for (int c = 0; c < 8; c++){
-	  //if (temperature_buffer[c] != '#'){
-			tempStrings[i][c] = temperature_buffer[c];
-            popStrings[i][c] = temperature_buffer[c];
-	  //printf("%c\tp ",tempStrings[i][c]);
-	  //fflush(stdout);
-	  //}
-		}
-	//printf(" ");
-	//tempStrings[i] = temperature_buffer[0];
-	//printf("%d",tempInts[i]);
-	//printf("%s",tempStrings[i]);
 	}
 	for (int i = 0; i < 20; i++){
 		snprintf(conditions_buffer, sizeof(conditions_buffer), "%s", conds[i]->value->cstring);
 		conditionStrings[i] = conditions_buffer[0];
-	//printf("%s",conditions_buffer);
-	//printf("%s",conditionStrings[i]);
 	}
 
-	for (int i = 0; i < 20; i++){
-		tempData[i] = tempInts[i];
-	}
 	static char tempDisplayBuffer[8];
 	static char condDisplayBuffer[8];
 	snprintf(tempDisplayBuffer, sizeof(tempDisplayBuffer), "%dF", (int)temps[0]->value->int32);
