@@ -39,6 +39,18 @@ int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int curent_humidity = 0;
 
+static uint32_t const disconnect_vibe_segments[] = { 500, 250, 500 };
+VibePattern disconnect_vibe = {
+  .durations = disconnect_vibe_segments,
+  .num_segments = ARRAY_LENGTH(disconnect_vibe_segments),
+};
+
+static uint32_t const connect_vibe_segments[] = { 250, 100, 250, 100, 250 };
+VibePattern connect_vibe = {
+  .durations = connect_vibe_segments,
+  .num_segments = ARRAY_LENGTH(connect_vibe_segments),
+};
+
 static GPath *popPath = NULL;
 static const GPathInfo popPathInfo = {
     .num_points = 20,
@@ -329,11 +341,13 @@ static void app_connection_handler(bool connected) {
 		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image_on), false);
 		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image), true);
 		printf("%s", "Pebble Connected!");
+        vibes_enqueue_custom_pattern(connect_vibe);
 	}
 	else{
 		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image_on), true);
 		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image), false);
 		printf("%s", "Pebble Disconnected!");
+        vibes_enqueue_custom_pattern(disconnect_vibe);
 	}
 }
 
