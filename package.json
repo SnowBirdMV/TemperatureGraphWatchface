@@ -89,12 +89,6 @@
                     "type": "bitmap"
                 },
                 {
-                    "file": "fonts/open-sans",
-                    "name": "OPEN_SANS_20",
-                    "targetPlatforms": null,
-                    "type": "font"
-                },
-                {
                     "file": "images/Bluetooth_on",
                     "name": "BLUETOOTH_ON",
                     "targetPlatforms": null,

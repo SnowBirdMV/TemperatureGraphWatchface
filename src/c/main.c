@@ -226,7 +226,6 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 	int pointY1= tempData[0] + ((y2 / 2 - tempData[0]) * 2.4);
 	points[0] = pointY1 + diff1;
     lastY = points[0];
-    int diffs[20];
     for (int i = 0; i < 20; i++){
         int diff = ((max - min) / 2) + min;
 		diff = (diff + ((y2 / 2 - diff) * 2.4) - 25) * -1;
@@ -276,7 +275,7 @@ static void grid_update_proc(Layer *layer, GContext *ctx){
 	graphics_draw_line(ctx, GPoint(110,0), GPoint(110,40));
 	graphics_draw_line(ctx, GPoint(110,26), GPoint(155,26));
     graphics_draw_line(ctx, GPoint(0,131), GPoint(155,131));
-    graphics_draw_line(ctx, GPoint(75,131), GPoint(75,111));
+    graphics_draw_line(ctx, GPoint(92,131), GPoint(92,111));
 }
 
 static void battery_charge_update_proc(Layer *layer, GContext *ctx){
@@ -306,7 +305,7 @@ static void battery_charge_update_proc(Layer *layer, GContext *ctx){
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 	update_time();
-
+    update_step_average();
   // Get weather update every 30 minutes
 	if(tick_time->tm_min % 30 == 0) {
 	// Begin dictionary
@@ -544,7 +543,7 @@ static void main_window_load(Window *window) {
     
     update_step_average();
     
-    s_humidity_layer = text_layer_create(GRect(78, 105, 40, 25));
+    s_humidity_layer = text_layer_create(GRect(95, 105, 40, 25));
     text_layer_set_background_color(s_humidity_layer, GColorClear);
 	text_layer_set_text_color(s_humidity_layer, GColorWhite);
 	text_layer_set_text_alignment(s_humidity_layer, GTextAlignmentLeft);

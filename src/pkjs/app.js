@@ -38,7 +38,7 @@ function locationSuccess(pos) {
 				dictionary["temp" + i] = temperature;
 				dictionary["cond" + i] = conditions;
 				dictionary["pop" + i] = pop;
-                console.log(dictionary["pop" + i]);
+                //console.log(dictionary["pop" + i]);
 				//console.log("Conditions are " + conditions);
 			}
 			
