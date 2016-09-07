@@ -1,6 +1,7 @@
 #include <pebble.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 
 #define KEY_TEMPERATURE 0
 #define KEY_CONDITIONS 1
@@ -144,6 +145,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         popData[i] = (int)pops[i]->value->int32;
         tempInts[i] = (int)temps[i]->value->int32;
         tempData[i] = tempInts[i];
+        persist_write_int(i, tempInts[i]);
+        persist_write_int(i + 20, popData[i]);
         //int test = c.value;
         
 	}
@@ -423,6 +426,11 @@ static void main_window_load(Window *window) {
   // Get information about the Window
 	Layer *window_layer = window_get_root_layer(window);
 	GRect bounds = layer_get_bounds(window_layer);
+    printf("%"PRIu32 , persist_read_int(0));
+    for (int i = 0; i < 20; i++){
+        tempData[i] = persist_read_int(i);
+        popData[i] = persist_read_int(i + 20);
+    }
     
     get_step_average();
     get_step_count();
