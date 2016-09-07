@@ -53,12 +53,13 @@ VibePattern connect_vibe = {
 
 static GPath *popPath = NULL;
 static const GPathInfo popPathInfo = {
-    .num_points = 20,
+    .num_points = 22,
     .points = (GPoint []) {{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
                           {0, 0}, {0, 0}, {0, 0}, {0, 0}, 
                           {0, 0}, {0, 0}, {0, 0}, {0, 0}, 
                           {0, 0}, {0, 0}, {0, 0}, {0, 0}, 
-                          {0, 0}, {0, 0}, {0, 0}, {0, 0}, }};
+                          {0, 0}, {0, 0}, {0, 0}, {0, 0}, 
+                          {160, 50}, {0, 50}}};
 
 static int batteryCharge = 0;
 static int s_step_count = 0, s_step_goal = 0, s_step_average = 0;
@@ -204,7 +205,12 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
     }
     popPath = gpath_create(&popPathInfo);
     gpath_draw_filled(ctx, popPath);
-	graphics_context_set_stroke_color(ctx, GColorGreen);
+    if (connection_service_peek_pebble_app_connection()){
+        graphics_context_set_stroke_color(ctx, GColorGreen);
+    }
+    else{
+        graphics_context_set_stroke_color(ctx, GColorRed);
+    }
 	graphics_draw_line(ctx, GPoint(0,0), GPoint(x2-1,0));
     //graphics_draw_line(ctx, GPoint(x2-1,0), GPoint(x2-1,y2-1));
 	graphics_draw_line(ctx, GPoint(x2-1,y2-1), GPoint(0,y2-1));
@@ -261,7 +267,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                         shift ++;
                     }
                     //printf("i is: %d, shift is: %d", i, shift);
-                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, shift - 18 ,18, 18), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
+                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, shift - 18 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
                 }
                 else{
                     start = 50;
@@ -270,7 +276,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                         shift --;
                     }
                     //printf("i is: %d, shift is: %d", i, shift);
-                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, 50 + shift,18, 18), GTextOverflowModeFill, GTextAlignmentCenter, graphics_text_attributes_create());
+                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, 50 + shift,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
                 }
             }	
 		}
@@ -282,7 +288,12 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 
 }
 static void grid_update_proc(Layer *layer, GContext *ctx){
-	graphics_context_set_stroke_color(ctx, GColorGreen);
+    if (connection_service_peek_pebble_app_connection()){
+        graphics_context_set_stroke_color(ctx, GColorGreen);
+    }
+    else{
+        graphics_context_set_stroke_color(ctx, GColorRed);
+    }
 	graphics_draw_line(ctx, GPoint(0,40), GPoint(155,40));
 	graphics_draw_line(ctx, GPoint(110,0), GPoint(110,40));
 	graphics_draw_line(ctx, GPoint(110,26), GPoint(155,26));
@@ -608,7 +619,6 @@ static void main_window_unload(Window *window) {
 
   // Destroy weather elements
 	text_layer_destroy(s_weather_layer);
-	fonts_unload_custom_font(s_weather_font);
 }
 
 
