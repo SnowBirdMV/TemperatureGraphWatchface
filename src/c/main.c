@@ -12,6 +12,7 @@ static TextLayer *s_weather_layer;
 static TextLayer *s_battery_charge_layer;
 static TextLayer *s_date_layer;
 static TextLayer *s_steps_layer;
+static TextLayer *s_cached_layer;
 static Layer *s_graph_background;
 static Layer *s_grid_background;
 static Layer *s_battery_charge;
@@ -119,9 +120,11 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	static char weather_layer_buffer[32];
     static char humidity_buffer[10];
     static char pop_buffer[10];
+    curent_humidity = (int)dict_find(iterator, 60)->value->int32;
     
-    snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", (int)dict_find(iterator, 60)->value->int32);
+    snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", curent_humidity);
     text_layer_set_text(s_humidity_layer, humidity_buffer);
+    persist_write_int(101, curent_humidity);
     
 	Tuple* temps [20];
 	Tuple* conds [20];
@@ -161,6 +164,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	snprintf(condDisplayBuffer, sizeof(condDisplayBuffer), "%s", conds[0]->value->cstring);
 	snprintf(weather_layer_buffer, sizeof(weather_layer_buffer), "%s, %s", tempDisplayBuffer, condDisplayBuffer);
 	text_layer_set_text(s_weather_layer, weather_layer_buffer);
+    layer_set_hidden(text_layer_get_layer(s_cached_layer), true);
     printf("%s", "Finished Parsing Weather Data");
     layer_mark_dirty(s_graph_background);
 
@@ -431,6 +435,7 @@ static void main_window_load(Window *window) {
         tempData[i] = persist_read_int(i);
         popData[i] = persist_read_int(i + 20);
     }
+    curent_humidity = persist_read_int(101);
     
     get_step_average();
     get_step_count();
@@ -474,7 +479,7 @@ static void main_window_load(Window *window) {
 
   // Create temperature Layer
 	s_weather_layer = text_layer_create(
-		GRect(0, 140, bounds.size.w, 25));
+		GRect(0, 127, bounds.size.w, 25));
 
 
   // Style the text
@@ -487,6 +492,15 @@ static void main_window_load(Window *window) {
 	s_weather_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_PERFECT_DOS_20));
 	text_layer_set_font(s_weather_layer, s_weather_font);
 	layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_weather_layer));
+    
+    s_cached_layer = text_layer_create(GRect(0, 150, 144, 25));
+    text_layer_set_background_color(s_cached_layer, GColorClear);
+	text_layer_set_text_color(s_cached_layer, GColorWhite);
+	text_layer_set_text_alignment(s_cached_layer, GTextAlignmentCenter);
+    text_layer_set_font(s_cached_layer, s_battery_font);
+    text_layer_set_text(s_cached_layer, "Cached");
+    layer_set_hidden(text_layer_get_layer(s_cached_layer), false);
+    layer_add_child(window_layer,text_layer_get_layer(s_cached_layer));
 
 	s_graph_background = layer_create(bounds);
 	layer_set_frame(s_graph_background, GRect(-1, 61, 160, 50));
@@ -583,6 +597,8 @@ static void main_window_load(Window *window) {
     text_layer_set_font(s_humidity_layer, s_date_font);
     layer_add_child(window_layer,text_layer_get_layer(s_humidity_layer));
     update_humidity();
+    
+    
     
 
 
