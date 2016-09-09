@@ -301,11 +301,12 @@ static void grid_update_proc(Layer *layer, GContext *ctx){
     else{
         graphics_context_set_stroke_color(ctx, GColorRed);
     }
-	graphics_draw_line(ctx, GPoint(0,40), GPoint(155,40));
+	graphics_draw_line(ctx, GPoint(0,40), GPoint(168,40));
 	graphics_draw_line(ctx, GPoint(110,0), GPoint(110,40));
-	graphics_draw_line(ctx, GPoint(110,26), GPoint(155,26));
-    graphics_draw_line(ctx, GPoint(0,131), GPoint(155,131));
+	graphics_draw_line(ctx, GPoint(110,26), GPoint(168,26));
+    graphics_draw_line(ctx, GPoint(0,131), GPoint(168,131));
     graphics_draw_line(ctx, GPoint(92,131), GPoint(92,111));
+    graphics_draw_line(ctx, GPoint(0,155), GPoint(168,155));
 }
 
 static void battery_charge_update_proc(Layer *layer, GContext *ctx){
@@ -479,7 +480,7 @@ static void main_window_load(Window *window) {
 
   // Create temperature Layer
 	s_weather_layer = text_layer_create(
-		GRect(0, 127, bounds.size.w, 25));
+		GRect(0, 129, bounds.size.w, 25));
 
 
   // Style the text
@@ -493,7 +494,7 @@ static void main_window_load(Window *window) {
 	text_layer_set_font(s_weather_layer, s_weather_font);
 	layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_weather_layer));
     
-    s_cached_layer = text_layer_create(GRect(0, 150, 144, 25));
+    s_cached_layer = text_layer_create(GRect(0, 153, 144, 25));
     text_layer_set_background_color(s_cached_layer, GColorClear);
 	text_layer_set_text_color(s_cached_layer, GColorWhite);
 	text_layer_set_text_alignment(s_cached_layer, GTextAlignmentCenter);
