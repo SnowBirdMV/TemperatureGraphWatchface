@@ -494,7 +494,7 @@ static void main_window_load(Window *window) {
 	text_layer_set_font(s_weather_layer, s_weather_font);
 	layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_weather_layer));
     
-    s_cached_layer = text_layer_create(GRect(0, 153, 144, 25));
+    s_cached_layer = text_layer_create(GRect(0, 154, 144, 25));
     text_layer_set_background_color(s_cached_layer, GColorClear);
 	text_layer_set_text_color(s_cached_layer, GColorWhite);
 	text_layer_set_text_alignment(s_cached_layer, GTextAlignmentCenter);
