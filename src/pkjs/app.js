@@ -31,7 +31,7 @@ function locationSuccess(pos) {
 				//console.log("Temperature is " + temperature);
 				
 				// Conditions
-				var conditions = json.hourly_forecast[i].icon;
+				var conditions = json.hourly_forecast[i].condition;
 				//console.log(json.hourly_forecast[i].icon);
 				var pop = parseInt(json.hourly_forecast[i].pop);
 					//console.log(pop);

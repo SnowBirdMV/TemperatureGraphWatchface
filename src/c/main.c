@@ -5,6 +5,10 @@
 
 #define KEY_TEMPERATURE 0
 #define KEY_CONDITIONS 1
+//0-19 temps
+//20-39 pop data
+//101 humidity data
+//102 condition string
 
 static Window *s_main_window;
 static TextLayer *s_time_layer;
@@ -129,7 +133,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	Tuple* temps [20];
 	Tuple* conds [20];
     Tuple* pops [20];
-	char conditionStrings[20];
+	char conditionStrings[32];
     conditionStrings[0] = conditionStrings[0];
 	int tempInts[21];
 	for (int i = 0; i < 21; i++){
@@ -153,17 +157,18 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         //int test = c.value;
         
 	}
-	for (int i = 0; i < 20; i++){
-		snprintf(conditions_buffer, sizeof(conditions_buffer), "%s", conds[i]->value->cstring);
-		conditionStrings[i] = conditions_buffer[0];
-	}
+    
+    snprintf(conditions_buffer, sizeof(conditions_buffer), "%s", conds[0]->value->cstring);
+	conditionStrings[0] = conditions_buffer[0];
+    printf("Condition Buffer: %s", conditions_buffer);
 
 	static char tempDisplayBuffer[8];
-	static char condDisplayBuffer[8];
+	static char condDisplayBuffer[32];
 	snprintf(tempDisplayBuffer, sizeof(tempDisplayBuffer), "%dF", (int)temps[0]->value->int32);
 	snprintf(condDisplayBuffer, sizeof(condDisplayBuffer), "%s", conds[0]->value->cstring);
 	snprintf(weather_layer_buffer, sizeof(weather_layer_buffer), "%s, %s", tempDisplayBuffer, condDisplayBuffer);
 	text_layer_set_text(s_weather_layer, weather_layer_buffer);
+    persist_write_string(102, weather_layer_buffer);
     layer_set_hidden(text_layer_get_layer(s_cached_layer), true);
     printf("%s", "Finished Parsing Weather Data");
     layer_mark_dirty(s_graph_background);
@@ -438,6 +443,8 @@ static void main_window_load(Window *window) {
     }
     curent_humidity = persist_read_int(101);
     
+    printf("Curent Humidity Cached: %" SCNd32 "\n", persist_read_int(101));
+    
     get_step_average();
     get_step_count();
     get_step_goal();
@@ -487,12 +494,15 @@ static void main_window_load(Window *window) {
 	text_layer_set_background_color(s_weather_layer, GColorClear);
 	text_layer_set_text_color(s_weather_layer, GColorWhite);
 	text_layer_set_text_alignment(s_weather_layer, GTextAlignmentCenter);
-	text_layer_set_text(s_weather_layer, "Loading...");
+    static char weather_layer_buffer[100];
+    persist_read_string(102, weather_layer_buffer, 100);
+    printf("Character buffer0 is %s", weather_layer_buffer);
 
   // Create second custom font, apply it and add to Window
 	s_weather_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_PERFECT_DOS_20));
-	text_layer_set_font(s_weather_layer, s_weather_font);
-	layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_weather_layer));
+	text_layer_set_font(s_weather_layer, s_date_font);
+    text_layer_set_text(s_weather_layer, weather_layer_buffer);
+	layer_add_child(window_layer, text_layer_get_layer(s_weather_layer));
     
     s_cached_layer = text_layer_create(GRect(0, 154, 144, 25));
     text_layer_set_background_color(s_cached_layer, GColorClear);
@@ -597,6 +607,7 @@ static void main_window_load(Window *window) {
 	text_layer_set_text_alignment(s_humidity_layer, GTextAlignmentLeft);
     text_layer_set_font(s_humidity_layer, s_date_font);
     layer_add_child(window_layer,text_layer_get_layer(s_humidity_layer));
+    text_layer_set_overflow_mode(s_humidity_layer, GTextOverflowModeWordWrap);
     update_humidity();
     
     
