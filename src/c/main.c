@@ -9,6 +9,7 @@
 //20-39 pop data
 //101 humidity data
 //102 condition string
+//103 time when the weather data was aquired
 
 static Window *s_main_window;
 static TextLayer *s_time_layer;
@@ -117,6 +118,7 @@ static void update_step_average(){
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     printf("%s", "Starting to Parse Weather Data");
+    persist_write_int(103, time(NULL));
     
   // Store incoming information
 	static char temperature_buffer[8];
@@ -487,7 +489,7 @@ static void main_window_load(Window *window) {
 
   // Create temperature Layer
 	s_weather_layer = text_layer_create(
-		GRect(0, 129, bounds.size.w, 25));
+		GRect(0, 126, bounds.size.w, 30));
 
 
   // Style the text
@@ -504,7 +506,7 @@ static void main_window_load(Window *window) {
     text_layer_set_text(s_weather_layer, weather_layer_buffer);
 	layer_add_child(window_layer, text_layer_get_layer(s_weather_layer));
     
-    s_cached_layer = text_layer_create(GRect(0, 154, 144, 25));
+    s_cached_layer = text_layer_create(GRect(0, 153, 144, 25));
     text_layer_set_background_color(s_cached_layer, GColorClear);
 	text_layer_set_text_color(s_cached_layer, GColorWhite);
 	text_layer_set_text_alignment(s_cached_layer, GTextAlignmentCenter);
@@ -689,7 +691,6 @@ static void init() {
 	text_layer_set_font(s_date_layer, s_date_font);
 	text_layer_set_text(s_date_layer, date_buffer );
 	
-
     printf("%s", "Registering callbacks");
     // Register callbacks
 	app_message_register_inbox_received(inbox_received_callback);
