@@ -118,7 +118,7 @@ static void update_step_average(){
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     printf("%s", "Starting to Parse Weather Data");
-    persist_write_int(103, time(NULL));
+    //persist_write_int(103, time(NULL));
     
   // Store incoming information
 	static char temperature_buffer[8];
