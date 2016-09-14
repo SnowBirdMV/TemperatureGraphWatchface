@@ -9,7 +9,6 @@
 //20-39 pop data
 //101 humidity data
 //102 condition string
-//103 time when the weather data was aquired
 
 static Window *s_main_window;
 static TextLayer *s_time_layer;
@@ -682,6 +681,7 @@ static void init() {
   // Register with TickTimerService
 	tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 	time_t rawtime;
+    time_t test;
 	struct tm *info;
 	char date_buffer[80];
 	time( &rawtime );
