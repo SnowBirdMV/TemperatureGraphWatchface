@@ -281,7 +281,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                             shift ++;
                         }
                         //printf("i is: %d, shift is: %d", i, shift);
-                        graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, shift - 18 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+                        graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, shift - 14 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
                     }
                     else{
                         start = 50;
@@ -300,7 +300,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                             shift ++;
                         }
                         //printf("i is: %d, shift is: %d", i, shift);
-                        graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, shift - 18 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+                        graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, shift - 14 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
                     }
                     else{
                         start = 50;
