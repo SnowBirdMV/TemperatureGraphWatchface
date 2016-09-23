@@ -274,23 +274,45 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
                 snprintf(graph_temp_buffer, sizeof(graph_temp_buffer), "%d", tempData[i]);
                 int shift = 0;
                 int start = 0;
-                if (points[i] >= 20){
-                    while (start < points[i-1] && start < points[i+1] ){
-                        start ++;
-                        shift ++;
+                if (i != 0){
+                    if (points[i] >= 20){
+                        while (start < points[i-1] && start < points[i+1] && start < points[i]){
+                            start ++;
+                            shift ++;
+                        }
+                        //printf("i is: %d, shift is: %d", i, shift);
+                        graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, shift - 18 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
                     }
-                    //printf("i is: %d, shift is: %d", i, shift);
-                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, shift - 18 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+                    else{
+                        start = 50;
+                        while (start > points[i-1] && start > points[i+1] && start > points[i]){
+                            start --;
+                            shift --;
+                        }
+                        //printf("i is: %d, shift is: %d", i, shift);
+                        graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, 50 + shift,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+                    }
                 }
                 else{
-                    start = 50;
-                    while (start > points[i-1] && start > points[i+1]){
-                        start --;
-                        shift --;
+                    if (points[i] >= 20){
+                        while (start < points[i+1] && start < points[i]){
+                            start ++;
+                            shift ++;
+                        }
+                        //printf("i is: %d, shift is: %d", i, shift);
+                        graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, shift - 18 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
                     }
-                    //printf("i is: %d, shift is: %d", i, shift);
-                    graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance, 50 + shift,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+                    else{
+                        start = 50;
+                        while (start > points[i+1] && start > points[i]){
+                            start --;
+                            shift --;
+                        }
+                        //printf("i is: %d, shift is: %d", i, shift);
+                        graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, 50 + shift,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+                    }
                 }
+                
             }	
 		}
 		lastY = points[i];
