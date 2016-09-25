@@ -70,7 +70,6 @@ void calculate_data_time_difference(){
         else{
             snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lud %luh", timeDifference / 86400, timeDifference / 3600 % 24);
         }
-    
         
         text_layer_set_text(s_refreshed_time_layer, refreshTimeBuffer );
         printf("Time sence last data refresh is: %s", refreshTimeBuffer);
@@ -78,7 +77,7 @@ void calculate_data_time_difference(){
         printf("Exiting update_proc");
     }
     else{
-        text_layer_set_text(s_refreshed_time_layer, "" );
+        text_layer_set_text(s_refreshed_time_layer, "Loading..." );
     }
 }
 
@@ -365,11 +364,9 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 		}
 		lastY = points[i];
 	}
-
 	graphics_draw_line(ctx, GPoint((20)*xDistance,lastY), GPoint(x2,lastY));
-
-
 }
+
 static void grid_update_proc(Layer *layer, GContext *ctx){
     if (connection_service_peek_pebble_app_connection()){
         graphics_context_set_stroke_color(ctx, GColorGreen);
@@ -413,6 +410,8 @@ static void battery_charge_update_proc(Layer *layer, GContext *ctx){
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 	update_time();
     update_step_average();
+    calculate_data_time_difference();
+    
   // Get weather update every 30 minutes
 	if(tick_time->tm_min % 30 == 0) {
 	// Begin dictionary
@@ -500,6 +499,11 @@ static void update_humidity(){
     static char humidity_buffer[10];
     snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", curent_humidity);
     text_layer_set_text(s_humidity_layer, humidity_buffer);
+}
+
+static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
+    calculate_data_time_difference();
+    update_step_average();
 }
 
 
@@ -714,7 +718,7 @@ static void main_window_load(Window *window) {
     APP_LOG(APP_LOG_LEVEL_ERROR, "Health not available!");
     #endif
 
-    
+    accel_tap_service_subscribe(accel_tap_handler);
 	battery_state_service_subscribe(battery_handler);
   // Add it as a child layer to the Window's root layer
 	layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
