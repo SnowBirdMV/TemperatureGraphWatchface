@@ -7,6 +7,7 @@
 #define KEY_CONDITIONS 1
 //0-19 temps
 //20-39 pop data
+//101 time since last fetch?
 //101 humidity data
 //102 condition string
 
@@ -17,6 +18,8 @@ static TextLayer *s_battery_charge_layer;
 static TextLayer *s_date_layer;
 static TextLayer *s_steps_layer;
 static TextLayer *s_cached_layer;
+static TextLayer *s_refreshed_time_layer;
+static TextLayer *s_data_refreshed_time_layer;
 static Layer *s_graph_background;
 static Layer *s_grid_background;
 static Layer *s_battery_charge;
@@ -44,6 +47,40 @@ static GFont s_weather_font;
 int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int curent_humidity = 0;
+
+unsigned long dataTime = 0;
+
+void calculate_data_time_difference(){
+    if (dataTime != 0){
+    printf("Inside update_proc");
+        static char refreshTimeBuffer[70];
+        time_t curentTime = time(NULL);
+        unsigned long curentTimeLong = curentTime;
+        unsigned long timeDifference = curentTimeLong - dataTime;
+        printf("Time Difference is: %lu, Curent Time is: %lu, Stored time is: %lu", timeDifference, curentTimeLong, dataTime);
+        if (timeDifference < 61){
+            snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lus", timeDifference);
+        }
+        else if (timeDifference > 61 && timeDifference < 3601){
+            snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lum %lus", timeDifference / 60, timeDifference % 60);
+        }
+        else if (timeDifference > 3600 && timeDifference < 86400){
+            snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%luh %lum", timeDifference / 3600, timeDifference / 60 % 60);
+        }
+        else{
+            snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lud %luh", timeDifference / 86400, timeDifference / 3600 % 24);
+        }
+    
+        
+        text_layer_set_text(s_refreshed_time_layer, refreshTimeBuffer );
+        printf("Time sence last data refresh is: %s", refreshTimeBuffer);
+        
+        printf("Exiting update_proc");
+    }
+    else{
+        text_layer_set_text(s_refreshed_time_layer, "" );
+    }
+}
 
 static uint32_t const disconnect_vibe_segments[] = { 500, 250, 500 };
 VibePattern disconnect_vibe = {
@@ -118,6 +155,16 @@ static void update_step_average(){
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
     printf("%s", "Starting to Parse Weather Data");
     //persist_write_int(103, time(NULL));
+    time_t curentTime = time(NULL);
+    printf("Storing Recieved Time: %" SCNd32 "\n", time(NULL));
+    persist_write_data(101, &curentTime, sizeof(curentTime));
+    dataTime = curentTime;
+    
+    time_t storedTime;
+    unsigned long testLong;
+    persist_read_data(101, &storedTime, sizeof(storedTime));
+    testLong = storedTime;
+    printf("unsigned long currently in storage is unsigned long: %lu", testLong);
     
   // Store incoming information
 	static char temperature_buffer[8];
@@ -173,6 +220,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     layer_set_hidden(text_layer_get_layer(s_cached_layer), true);
     printf("%s", "Finished Parsing Weather Data");
     layer_mark_dirty(s_graph_background);
+    calculate_data_time_difference();
 
 }
 
@@ -455,6 +503,7 @@ static void update_humidity(){
 }
 
 
+
 static void main_window_load(Window *window) {
   // Get information about the Window
 	Layer *window_layer = window_get_root_layer(window);
@@ -634,8 +683,19 @@ static void main_window_load(Window *window) {
     update_humidity();
     
     
+    s_refreshed_time_layer = text_layer_create(GRect(5, 153, 140, 25));
+    text_layer_set_background_color(s_refreshed_time_layer, GColorClear);
+	text_layer_set_text_color(s_refreshed_time_layer, GColorWhite);
+	text_layer_set_text_alignment(s_refreshed_time_layer, GTextAlignmentLeft);
+    text_layer_set_overflow_mode(s_refreshed_time_layer, GTextOverflowModeWordWrap);
+    text_layer_set_font(s_refreshed_time_layer, s_battery_font);
+    text_layer_set_text(s_refreshed_time_layer, "Hello" );
+    layer_add_child(window_layer,text_layer_get_layer(s_refreshed_time_layer));
+    calculate_data_time_difference();
     
-
+    
+    
+    
 
 
 	connection_service_subscribe((ConnectionHandlers) {
@@ -703,7 +763,6 @@ static void init() {
   // Register with TickTimerService
 	tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 	time_t rawtime;
-    time_t test;
 	struct tm *info;
 	char date_buffer[80];
 	time( &rawtime );
