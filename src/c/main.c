@@ -691,7 +691,7 @@ static void main_window_load(Window *window) {
     
     update_step_average();
     
-    s_humidity_layer = text_layer_create(GRect(95, 105, 40, 25));
+    s_humidity_layer = text_layer_create(GRect(95, 104, 40, 25));
     text_layer_set_background_color(s_humidity_layer, GColorClear);
 	text_layer_set_text_color(s_humidity_layer, GColorWhite);
 	text_layer_set_text_alignment(s_humidity_layer, GTextAlignmentLeft);
