@@ -44,6 +44,9 @@ static GFont s_weather_font;
 static GFont s_date_font;
 static GFont s_weather_font;
 
+bool asleep = false;
+int asleep_time = 0;
+
 int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int curent_humidity = 0;
@@ -408,6 +411,7 @@ static void battery_charge_update_proc(Layer *layer, GContext *ctx){
 
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+    if (!asleep){
 	update_time();
     update_step_average();
     calculate_data_time_difference();
@@ -424,6 +428,15 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 	// Send the message!
 		app_message_outbox_send();
 	}
+    }
+    else{
+        if (asleep_time > 0){
+            asleep_time --;
+        }
+        else{
+            asleep = false;
+        }
+    }
 }
 static void battery_handler(BatteryChargeState charge){
 	batteryCharge = charge.charge_percent;
@@ -486,7 +499,8 @@ static void health_handler(HealthEventType event, void *context) {
     case HealthEventSleepUpdate:
       APP_LOG(APP_LOG_LEVEL_INFO, 
               "New HealthService HealthEventSleepUpdate event");
-      update_step_average();
+      asleep = true;
+      asleep_time = 10;
       break;
     case HealthEventHeartRateUpdate:
       break;
