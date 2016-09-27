@@ -11,7 +11,7 @@
         "displayName": "Tutorial-3-3",
         "enableMultiJS": false,
         "messageKeys": {
-            "Time": 101,
+            "Time": 61,
             "cond0": 20,
             "cond1": 21,
             "cond10": 30,
@@ -107,11 +107,6 @@
                     "name": "DIGITAL_FONT_48",
                     "targetPlatforms": null,
                     "type": "font"
-                },
-                {
-                    "file": "images/background.png",
-                    "name": "IMAGE_BACKGROUND",
-                    "type": "bitmap"
                 },
                 {
                     "compatibility": "2.7",

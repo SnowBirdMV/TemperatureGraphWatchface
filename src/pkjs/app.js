@@ -1,4 +1,4 @@
-var myAPIKey = 'a26a735eab948fcd';
+var myAPIKey = 'cc1720352689e95736d730b20dfc9288';
 
 var xhrRequest = function (url, type, callback) {
 	var xhr = new XMLHttpRequest();
@@ -11,7 +11,7 @@ var xhrRequest = function (url, type, callback) {
 
 function locationSuccess(pos) {
 	// Construct URL
-	var url = "http://api.wunderground.com/api/" + myAPIKey + "/hourly/geolookup/q/" + pos.coords.latitude + "," + pos.coords.longitude + ".json";
+	var url = "https://api.darksky.net/forecast/" + myAPIKey + "/" + pos.coords.latitude + "," + pos.coords.longitude;
 	console.log(url);
 
 	// Send request to OpenWeatherMap
@@ -24,16 +24,17 @@ function locationSuccess(pos) {
 			// Temperature in Kelvin requires adjustment
 			//console.log(json.hourly_forecast[0].temp.english);
 			var dictionary = {};
-            var humidity = parseInt(json.hourly_forecast[0].humidity);
+            var humidity = parseFloat(json.currently.humidity) * 100;
             dictionary["humidity"] = humidity;
+            console.log("Humidity is " + humidity * 100);
 			for (var i = 0; i < 20; i++){
-				var temperature = Math.round(json.hourly_forecast[i].temp.english);
+				var temperature = Math.round(json.hourly.data[i].temperature);
 				//console.log("Temperature is " + temperature);
 				
 				// Conditions
-				var conditions = json.hourly_forecast[i].condition;
+				var conditions = json.hourly.data[i].summary;
 				//console.log(json.hourly_forecast[i].icon);
-				var pop = parseInt(json.hourly_forecast[i].pop);
+				var pop = parseFloat(json.hourly.data[i].precipProbability) * 100;
 					//console.log(pop);
 				dictionary["temp" + i] = temperature;
 				dictionary["cond" + i] = conditions;

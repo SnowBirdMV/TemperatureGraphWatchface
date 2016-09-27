@@ -3,8 +3,17 @@
 #include <stdint.h>
 #include <inttypes.h>
 
-#define KEY_TEMPERATURE 0
 #define KEY_CONDITIONS 1
+
+#define KEY_TEMPERATURE 100
+#define KEY_POPDATA 200
+#define KEY_HUMIDITY 1000
+#define KEY_TIME 1001
+#define KEY_WEATHER_STRING 1002
+
+#define TEMP_DATA_POINTS 20
+#define POP_DATA_POINTS 20
+
 //0-19 temps
 //20-39 pop data
 //101 time since last fetch?
@@ -159,12 +168,12 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     //persist_write_int(103, time(NULL));
     time_t curentTime = time(NULL);
     printf("Storing Recieved Time: %" SCNd32 "\n", time(NULL));
-    persist_write_data(101, &curentTime, sizeof(curentTime));
+    persist_write_data(KEY_TIME, &curentTime, sizeof(curentTime));
     dataTime = curentTime;
     
     time_t storedTime;
     unsigned long testLong;
-    persist_read_data(101, &storedTime, sizeof(storedTime));
+    persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
     testLong = storedTime;
     printf("unsigned long currently in storage is unsigned long: %lu", testLong);
     
@@ -174,11 +183,14 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	static char weather_layer_buffer[32];
     static char humidity_buffer[10];
     static char pop_buffer[10];
+    printf("after variable decleration");
     curent_humidity = (int)dict_find(iterator, 60)->value->int32;
-    
+    printf("after humidity dereference");
     snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", curent_humidity);
+    printf("after snprintf of humidity buffer");
     text_layer_set_text(s_humidity_layer, humidity_buffer);
-    persist_write_int(101, curent_humidity);
+    persist_write_int(KEY_HUMIDITY, curent_humidity);
+    printf("before tuple array decleration");
     
 	Tuple* temps [20];
 	Tuple* conds [20];
@@ -186,28 +198,30 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	char conditionStrings[32];
     conditionStrings[0] = conditionStrings[0];
 	int tempInts[21];
+    printf("Before for loop1");
 	for (int i = 0; i < 21; i++){
 		tempInts[i] = i;
 	}
+    printf("before for loop 2");
 	for (int i = 0; i < 20; i++){
 		pops[i] = dict_find(iterator, i);
 		conds[i] = dict_find(iterator, i + 20);
         temps[i] = dict_find(iterator, i + 40);
 	}
     
-    
+    printf("before for loop 3");
 	for (int i = 0; i < 20; i++){
 		snprintf(temperature_buffer, sizeof(temperature_buffer), "%dF", (int)temps[i]->value->int32);
         snprintf(pop_buffer, sizeof(pop_buffer), "%d", (int)temps[i]->value->int32);
         popData[i] = (int)pops[i]->value->int32;
         tempInts[i] = (int)temps[i]->value->int32;
         tempData[i] = tempInts[i];
-        persist_write_int(i, tempInts[i]);
-        persist_write_int(i + 20, popData[i]);
+        persist_write_int(i + KEY_TEMPERATURE, tempInts[i]);
+        persist_write_int(i + KEY_POPDATA, popData[i]);
         //int test = c.value;
         
 	}
-    
+    printf("Before condition assignment");
     snprintf(conditions_buffer, sizeof(conditions_buffer), "%s", conds[0]->value->cstring);
 	conditionStrings[0] = conditions_buffer[0];
     printf("Condition Buffer: %s", conditions_buffer);
@@ -218,7 +232,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	snprintf(condDisplayBuffer, sizeof(condDisplayBuffer), "%s", conds[0]->value->cstring);
 	snprintf(weather_layer_buffer, sizeof(weather_layer_buffer), "%s, %s", tempDisplayBuffer, condDisplayBuffer);
 	text_layer_set_text(s_weather_layer, weather_layer_buffer);
-    persist_write_string(102, weather_layer_buffer);
+    persist_write_string(KEY_WEATHER_STRING, weather_layer_buffer);
     layer_set_hidden(text_layer_get_layer(s_cached_layer), true);
     printf("%s", "Finished Parsing Weather Data");
     layer_mark_dirty(s_graph_background);
@@ -526,14 +540,17 @@ static void main_window_load(Window *window) {
   // Get information about the Window
 	Layer *window_layer = window_get_root_layer(window);
 	GRect bounds = layer_get_bounds(window_layer);
-    printf("%"PRIu32 , persist_read_int(0));
-    for (int i = 0; i < 20; i++){
+    printf("%"PRIu32 , persist_read_int(KEY_TEMPERATURE));
+    for (int i = KEY_TEMPERATURE; i < KEY_TEMPERATURE + TEMP_DATA_POINTS; i++){
         tempData[i] = persist_read_int(i);
-        popData[i] = persist_read_int(i + 20);
     }
-    curent_humidity = persist_read_int(101);
     
-    printf("Curent Humidity Cached: %" SCNd32 "\n", persist_read_int(101));
+    for (int i = KEY_POPDATA; i < KEY_POPDATA + POP_DATA_POINTS; i++){
+        popData[i] = persist_read_int(i);
+    }
+    curent_humidity = persist_read_int(KEY_HUMIDITY);
+    
+    printf("Curent Humidity Cached: %" SCNd32 "\n", persist_read_int(KEY_HUMIDITY));
     
     get_step_average();
     get_step_count();
@@ -585,7 +602,7 @@ static void main_window_load(Window *window) {
 	text_layer_set_text_color(s_weather_layer, GColorWhite);
 	text_layer_set_text_alignment(s_weather_layer, GTextAlignmentCenter);
     static char weather_layer_buffer[100];
-    persist_read_string(102, weather_layer_buffer, 100);
+    persist_read_string(KEY_WEATHER_STRING, weather_layer_buffer, 100);
     printf("Character buffer0 is %s", weather_layer_buffer);
 
   // Create second custom font, apply it and add to Window
