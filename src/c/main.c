@@ -14,11 +14,6 @@
 #define TEMP_DATA_POINTS 20
 #define POP_DATA_POINTS 20
 
-//0-19 temps
-//20-39 pop data
-//101 time since last fetch?
-//101 humidity data
-//102 condition string
 
 static Window *s_main_window;
 static TextLayer *s_time_layer;
@@ -63,8 +58,14 @@ int curent_humidity = 0;
 unsigned long dataTime = 0;
 
 void calculate_data_time_difference(){
+    time_t storedTime;
+    unsigned long testLong;
+    persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
+    testLong = (unsigned long)storedTime;
+    printf("Time currently in storage (from loading main window) is : %lu", (unsigned long)testLong);
+    dataTime = testLong;
     if (dataTime != 0){
-    printf("Inside update_proc");
+        printf("Inside update_proc");
         static char refreshTimeBuffer[70];
         time_t curentTime = time(NULL);
         unsigned long curentTimeLong = curentTime;
@@ -89,7 +90,7 @@ void calculate_data_time_difference(){
         printf("Exiting update_proc");
     }
     else{
-        text_layer_set_text(s_refreshed_time_layer, "Loading..." );
+        text_layer_set_text(s_refreshed_time_layer, "Loading" );
     }
 }
 
@@ -182,46 +183,41 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	static char conditions_buffer[32];
 	static char weather_layer_buffer[32];
     static char humidity_buffer[10];
-    static char pop_buffer[10];
-    printf("after variable decleration");
-    curent_humidity = (int)dict_find(iterator, 60)->value->int32;
-    printf("after humidity dereference");
+    curent_humidity = (int)dict_find(iterator, KEY_HUMIDITY)->value->int32;
     snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", curent_humidity);
-    printf("after snprintf of humidity buffer");
     text_layer_set_text(s_humidity_layer, humidity_buffer);
     persist_write_int(KEY_HUMIDITY, curent_humidity);
-    printf("before tuple array decleration");
     
-	Tuple* temps [20];
-	Tuple* conds [20];
-    Tuple* pops [20];
+	Tuple* temps [TEMP_DATA_POINTS];
+	Tuple* conds [1];
+    Tuple* pops [POP_DATA_POINTS];
 	char conditionStrings[32];
     conditionStrings[0] = conditionStrings[0];
-	int tempInts[21];
-    printf("Before for loop1");
-	for (int i = 0; i < 21; i++){
+	int tempInts[TEMP_DATA_POINTS + 1];
+	for (int i = 0; i < TEMP_DATA_POINTS + 1; i++){
 		tempInts[i] = i;
 	}
-    printf("before for loop 2");
-	for (int i = 0; i < 20; i++){
-		pops[i] = dict_find(iterator, i);
-		conds[i] = dict_find(iterator, i + 20);
-        temps[i] = dict_find(iterator, i + 40);
+	for (int i = 0; i < TEMP_DATA_POINTS; i++){
+        temps[i] = dict_find(iterator, i + KEY_TEMPERATURE);
 	}
+    for (int i = 0; i < POP_DATA_POINTS; i++){
+		pops[i] = dict_find(iterator, i + KEY_POPDATA);
+	}
+    conds[0] = dict_find(iterator, KEY_WEATHER_STRING);
     
-    printf("before for loop 3");
-	for (int i = 0; i < 20; i++){
-		snprintf(temperature_buffer, sizeof(temperature_buffer), "%dF", (int)temps[i]->value->int32);
-        snprintf(pop_buffer, sizeof(pop_buffer), "%d", (int)temps[i]->value->int32);
-        popData[i] = (int)pops[i]->value->int32;
+    snprintf(temperature_buffer, sizeof(temperature_buffer), "%dF", (int)temps[0]->value->int32);
+	for (int i = 0; i < TEMP_DATA_POINTS; i++){
         tempInts[i] = (int)temps[i]->value->int32;
         tempData[i] = tempInts[i];
         persist_write_int(i + KEY_TEMPERATURE, tempInts[i]);
-        persist_write_int(i + KEY_POPDATA, popData[i]);
-        //int test = c.value;
-        
+        //int test = c.value;   
 	}
-    printf("Before condition assignment");
+    for (int i = 0; i < POP_DATA_POINTS; i++){
+        popData[i] = (int)pops[i]->value->int32;
+        persist_write_int(i + KEY_POPDATA, popData[i]);
+        //int test = c.value;    
+	}
+    
     snprintf(conditions_buffer, sizeof(conditions_buffer), "%s", conds[0]->value->cstring);
 	conditionStrings[0] = conditions_buffer[0];
     printf("Condition Buffer: %s", conditions_buffer);
@@ -397,6 +393,7 @@ static void grid_update_proc(Layer *layer, GContext *ctx){
     graphics_draw_line(ctx, GPoint(0,131), GPoint(168,131));
     graphics_draw_line(ctx, GPoint(92,131), GPoint(92,111));
     graphics_draw_line(ctx, GPoint(0,155), GPoint(168,155));
+    graphics_draw_line(ctx, GPoint(50,155), GPoint(50,170));
 }
 
 static void battery_charge_update_proc(Layer *layer, GContext *ctx){
@@ -530,6 +527,8 @@ static void update_humidity(){
 }
 
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
+    asleep_time = 0;
+    asleep = false;
     calculate_data_time_difference();
     update_step_average();
 }
@@ -541,12 +540,12 @@ static void main_window_load(Window *window) {
 	Layer *window_layer = window_get_root_layer(window);
 	GRect bounds = layer_get_bounds(window_layer);
     printf("%"PRIu32 , persist_read_int(KEY_TEMPERATURE));
-    for (int i = KEY_TEMPERATURE; i < KEY_TEMPERATURE + TEMP_DATA_POINTS; i++){
-        tempData[i] = persist_read_int(i);
+    for (int i = 0; i < TEMP_DATA_POINTS; i++){
+        tempData[i] = persist_read_int(i + KEY_TEMPERATURE);
     }
     
-    for (int i = KEY_POPDATA; i < KEY_POPDATA + POP_DATA_POINTS; i++){
-        popData[i] = persist_read_int(i);
+    for (int i = 0; i < POP_DATA_POINTS; i++){
+        popData[i] = persist_read_int(i + KEY_POPDATA);
     }
     curent_humidity = persist_read_int(KEY_HUMIDITY);
     
@@ -718,15 +717,21 @@ static void main_window_load(Window *window) {
     update_humidity();
     
     
-    s_refreshed_time_layer = text_layer_create(GRect(5, 153, 140, 25));
+    s_refreshed_time_layer = text_layer_create(GRect(0, 153, 50, 25));
     text_layer_set_background_color(s_refreshed_time_layer, GColorClear);
 	text_layer_set_text_color(s_refreshed_time_layer, GColorWhite);
-	text_layer_set_text_alignment(s_refreshed_time_layer, GTextAlignmentLeft);
+	text_layer_set_text_alignment(s_refreshed_time_layer, GTextAlignmentCenter);
     text_layer_set_overflow_mode(s_refreshed_time_layer, GTextOverflowModeWordWrap);
     text_layer_set_font(s_refreshed_time_layer, s_battery_font);
     text_layer_set_text(s_refreshed_time_layer, "Hello" );
     layer_add_child(window_layer,text_layer_get_layer(s_refreshed_time_layer));
     calculate_data_time_difference();
+    
+    time_t storedTime;
+    unsigned long testLong;
+    persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
+    testLong = (unsigned long)storedTime;
+    printf("Time currently in storage (from loading main window) is : %lu", (unsigned long)testLong);
     
     
     

@@ -14,40 +14,32 @@ function locationSuccess(pos) {
 	var url = "https://api.darksky.net/forecast/" + myAPIKey + "/" + pos.coords.latitude + "," + pos.coords.longitude;
 	console.log(url);
 
-	// Send request to OpenWeatherMap
+	// Send request to DarkSky
 	xhrRequest(url, 'GET',
 						 
 		function(responseText) {
+            var TEMP_DATA_POINTS = 20;
+            var POP_DATA_POINTS = 20;
 			// responseText contains a JSON object with weather info
 			var json = JSON.parse(responseText);
 
-			// Temperature in Kelvin requires adjustment
-			//console.log(json.hourly_forecast[0].temp.english);
 			var dictionary = {};
             var humidity = parseFloat(json.currently.humidity) * 100;
             dictionary["humidity"] = humidity;
             console.log("Humidity is " + humidity * 100);
-			for (var i = 0; i < 20; i++){
+            var conditions = json.currently.summary;
+            dictionary["cond0"] = conditions;
+            
+			for (var i = 0; i < TEMP_DATA_POINTS; i++){
 				var temperature = Math.round(json.hourly.data[i].temperature);
-				//console.log("Temperature is " + temperature);
-				
-				// Conditions
-				var conditions = json.hourly.data[i].summary;
-				//console.log(json.hourly_forecast[i].icon);
-				var pop = parseFloat(json.hourly.data[i].precipProbability) * 100;
-					//console.log(pop);
 				dictionary["temp" + i] = temperature;
-				dictionary["cond" + i] = conditions;
-				dictionary["pop" + i] = pop;
-                //console.log(dictionary["pop" + i]);
-				//console.log("Conditions are " + conditions);
 			}
-			
-			
-			
-			// Assemble dictionary using our keys
-			
-
+            
+            for (var j = 0; j < POP_DATA_POINTS; j++){
+				var pop = parseFloat(json.hourly.data[j].precipProbability) * 100;
+				dictionary["pop" + j] = pop;
+			}
+            
 			// Send to Pebble
 			Pebble.sendAppMessage(dictionary,
 				function(e) {
