@@ -12,6 +12,7 @@
         "enableMultiJS": false,
         "messageKeys": {
             "Time": 1001,
+            "batteryTime": 1003,
             "cond0": 1002,
             "humidity": 1000,
             "pop0": 200,

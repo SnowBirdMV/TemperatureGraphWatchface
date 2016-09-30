@@ -71,7 +71,7 @@ Pebble.addEventListener('ready',
 		console.log("PebbleKit JS ready!");
 
 		// Get the initial weather
-		getWeather();
+		//getWeather();
 	}
 );
 
