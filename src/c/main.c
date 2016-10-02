@@ -10,12 +10,18 @@
 #define KEY_HUMIDITY 1000
 #define KEY_TIME 1001
 #define KEY_WEATHER_STRING 1002
+#define KEY_BATTERY_TIME 1003
+#define KEY_BACKGROUNDCOLOR 1004
+#define KEY_FOREGROUNDCOLOR 1005
+#define KEY_SECOND_TICK 1006
+#define KEY_ANIMATIONS 1007
 
 #define TEMP_DATA_POINTS 20
 #define POP_DATA_POINTS 20
 
 
 static Window *s_main_window;
+static Window *s_sleep_window;
 static TextLayer *s_time_layer;
 static TextLayer *s_weather_layer;
 static TextLayer *s_battery_charge_layer;
@@ -24,23 +30,28 @@ static TextLayer *s_steps_layer;
 static TextLayer *s_cached_layer;
 static TextLayer *s_refreshed_time_layer;
 static TextLayer *s_data_refreshed_time_layer;
+static TextLayer *s_battery_time_layer;
+static TextLayer *s_sleep_layer;
+static TextLayer *s_humidity_layer;
 static Layer *s_graph_background;
 static Layer *s_grid_background;
 static Layer *s_battery_charge;
 static Layer *s_battery_behind_clock;
-static TextLayer *s_humidity_layer;
+
 
 static BitmapLayer *s_background_layer;
 static BitmapLayer *s_bluetooth_image;
 static BitmapLayer *s_bluetooth_image_on;
 static BitmapLayer *s_steps_above_layer;
 static BitmapLayer *s_steps_below_layer;
+static BitmapLayer *s_battery_charging_layer;
 
 static GBitmap *s_bluetooth_on;
 static GBitmap *s_bluetooth_off;
 static GBitmap *s_steps_above_image;
 static GBitmap *s_steps_below_image;
 static GBitmap *s_background_bitmap;
+static GBitmap *s_lightningbolt;
 
 static GFont s_time_font;
 static GFont s_battery_font;
@@ -85,6 +96,43 @@ void calculate_data_time_difference(){
         }
         
         text_layer_set_text(s_refreshed_time_layer, refreshTimeBuffer );
+        printf("Time sence last data refresh is: %s", refreshTimeBuffer);
+        
+        printf("Exiting update_proc");
+    }
+    else{
+        text_layer_set_text(s_refreshed_time_layer, "Loading" );
+    }
+}
+
+void calculate_battery_time_difference(){
+    time_t storedBatteryTime;
+    unsigned long testLong;
+    persist_read_data(KEY_BATTERY_TIME, &storedBatteryTime, sizeof(storedBatteryTime));
+    testLong = (unsigned long)storedBatteryTime;
+    printf("Time currently in storage (from loading main window) is : %lu", (unsigned long)testLong);
+    time_t batteryTime = testLong;
+    if ((unsigned long)storedBatteryTime != 0){
+        printf("Inside update_proc");
+        static char refreshTimeBuffer[70];
+        time_t curentTime = time(NULL);
+        unsigned long curentTimeLong = curentTime;
+        unsigned long timeDifference = curentTimeLong - (unsigned long)storedBatteryTime;
+        printf("Time Difference is: %lu, Curent Time is: %lu, Stored time is: %lu", timeDifference, curentTimeLong, (unsigned long)storedBatteryTime);
+        if (timeDifference < 61){
+            snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lus", timeDifference);
+        }
+        else if (timeDifference > 61 && timeDifference < 3601){
+            snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lum %lus", timeDifference / 60, timeDifference % 60);
+        }
+        else if (timeDifference > 3600 && timeDifference < 86400){
+            snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%luh %lum", timeDifference / 3600, timeDifference / 60 % 60);
+        }
+        else{
+            snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lud %luh", timeDifference / 86400, timeDifference / 3600 % 24);
+        }
+        
+        text_layer_set_text(s_battery_time_layer, refreshTimeBuffer );
         printf("Time sence last data refresh is: %s", refreshTimeBuffer);
         
         printf("Exiting update_proc");
@@ -394,14 +442,20 @@ static void grid_update_proc(Layer *layer, GContext *ctx){
     graphics_draw_line(ctx, GPoint(92,131), GPoint(92,111));
     graphics_draw_line(ctx, GPoint(0,155), GPoint(168,155));
     graphics_draw_line(ctx, GPoint(50,155), GPoint(50,170));
+    graphics_draw_line(ctx, GPoint(92,155), GPoint(92,170));
 }
 
 static void battery_charge_update_proc(Layer *layer, GContext *ctx){
     // Peek at the current battery state
 	BatteryChargeState state = battery_state_service_peek();
     
-	graphics_context_set_stroke_color(ctx, GColorGreen);
-	graphics_context_set_fill_color(ctx, GColorGreen);
+    if(state.is_charging){
+        time_t curentTime = time(NULL);
+        persist_write_data(KEY_BATTERY_TIME, &curentTime, sizeof(curentTime));
+    }
+    
+	graphics_context_set_stroke_color(ctx, GColorIslamicGreen);
+	graphics_context_set_fill_color(ctx, GColorIslamicGreen);
 	graphics_fill_rect(ctx, GRect(5, 25, 10, -1*state.charge_percent*.2), 0, GCornerNone);
     
 	graphics_context_set_stroke_color(ctx, GColorWhite);
@@ -423,24 +477,33 @@ static void battery_charge_update_proc(Layer *layer, GContext *ctx){
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     if (!asleep){
-	update_time();
-    update_step_average();
-    calculate_data_time_difference();
+	    update_time();
+        update_step_average();
+        calculate_data_time_difference();
+        calculate_battery_time_difference();
     
-  // Get weather update every 30 minutes
-	if(tick_time->tm_min % 30 == 0) {
-	// Begin dictionary
-		DictionaryIterator *iter;
-		app_message_outbox_begin(&iter);
+        // Get weather update every 30 minutes
+        time_t storedTime;
+        persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
+	    if((unsigned long)time(NULL) - (unsigned long)storedTime > 3599) {
+            printf("Time difference is %lu, time1: %lu, time2: %lu", (unsigned long)time(NULL) - (unsigned long)storedTime, (unsigned long)time(NULL), (unsigned long)storedTime);
+	        // Begin dictionary
+		    DictionaryIterator *iter;
+		    app_message_outbox_begin(&iter);
 
-	// Add a key-value pair
-		dict_write_uint8(iter, 0, 0);
+	        // Add a key-value pair
+		    dict_write_uint8(iter, 0, 0);
 
-	// Send the message!
-		app_message_outbox_send();
-	}
+	        // Send the message!
+            printf("Sent request for weather to phone.");
+		    app_message_outbox_send();
+	    }
     }
     else{
+        printf("I am assleep");
+        if (window_stack_get_top_window() == s_main_window){
+            window_stack_push(s_sleep_window, true);
+        }
         if (asleep_time > 0){
             asleep_time --;
         }
@@ -451,6 +514,16 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 }
 static void battery_handler(BatteryChargeState charge){
 	batteryCharge = charge.charge_percent;
+    if (charge.is_charging){
+        layer_set_hidden(bitmap_layer_get_layer(s_battery_charging_layer), false);
+    }
+    else{
+        layer_set_hidden(bitmap_layer_get_layer(s_battery_charging_layer), true);
+    }
+    if(charge.is_charging){
+        time_t batteryChargeTime = time(NULL);
+        persist_write_data(KEY_BATTERY_TIME, &batteryChargeTime, sizeof(batteryChargeTime));
+    }
 }
 
 static void app_connection_handler(bool connected) {
@@ -529,14 +602,42 @@ static void update_humidity(){
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
     asleep_time = 0;
     asleep = false;
-    calculate_data_time_difference();
+    if (window_stack_get_top_window() == s_sleep_window){
+        window_stack_pop(true);
+    }
+    update_time();
     update_step_average();
+    calculate_data_time_difference();
+    calculate_battery_time_difference();
+    update_step_average();
+    time_t storedTime;
+    persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
+	if((unsigned long)time(NULL) - (unsigned long)storedTime > 3599) {
+        printf("Time difference is %lu, time1: %lu, time2: %lu", (unsigned long)time(NULL) - (unsigned long)storedTime, (unsigned long)time(NULL), (unsigned long)storedTime);
+	// Begin dictionary
+		DictionaryIterator *iter;
+		app_message_outbox_begin(&iter);
+
+	// Add a key-value pair
+		dict_write_uint8(iter, 0, 0);
+
+	// Send the message!
+        printf("Sent request for weather to phone.");
+		app_message_outbox_send();
+	    }
+}
+
+static void lightningbolt_update_proc(Layer *layer, GContext *ctx){
+    graphics_context_set_compositing_mode(ctx, GCompOpSet);
+    graphics_draw_bitmap_in_rect(ctx, s_lightningbolt, gbitmap_get_bounds(s_lightningbolt));
 }
 
 
 
 static void main_window_load(Window *window) {
   // Get information about the Window
+    BatteryChargeState batteryState = battery_state_service_peek();
+    
 	Layer *window_layer = window_get_root_layer(window);
 	GRect bounds = layer_get_bounds(window_layer);
     printf("%"PRIu32 , persist_read_int(KEY_TEMPERATURE));
@@ -615,9 +716,17 @@ static void main_window_load(Window *window) {
 	text_layer_set_text_color(s_cached_layer, GColorWhite);
 	text_layer_set_text_alignment(s_cached_layer, GTextAlignmentCenter);
     text_layer_set_font(s_cached_layer, s_battery_font);
+    time_t cachedTime;
+    persist_read_data(KEY_TIME, &cachedTime, sizeof(cachedTime));
+	if((unsigned long)time(NULL) - (unsigned long)cachedTime > 3599) {
+        layer_set_hidden(text_layer_get_layer(s_cached_layer), false);
+	}
+    else{
+        layer_set_hidden(text_layer_get_layer(s_cached_layer), true);
+    }
     text_layer_set_text(s_cached_layer, "Cached");
-    layer_set_hidden(text_layer_get_layer(s_cached_layer), false);
     layer_add_child(window_layer,text_layer_get_layer(s_cached_layer));
+    layer_set_hidden(text_layer_get_layer(s_cached_layer), false);
 
 	s_graph_background = layer_create(bounds);
 	layer_set_frame(s_graph_background, GRect(-1, 61, 160, 50));
@@ -727,17 +836,44 @@ static void main_window_load(Window *window) {
     layer_add_child(window_layer,text_layer_get_layer(s_refreshed_time_layer));
     calculate_data_time_difference();
     
+    s_battery_time_layer = text_layer_create(GRect(94, 153, 50, 25));
+    text_layer_set_background_color(s_battery_time_layer, GColorClear);
+	text_layer_set_text_color(s_battery_time_layer, GColorWhite);
+	text_layer_set_text_alignment(s_battery_time_layer, GTextAlignmentCenter);
+    text_layer_set_overflow_mode(s_battery_time_layer, GTextOverflowModeWordWrap);
+    text_layer_set_font(s_battery_time_layer, s_battery_font);
+    text_layer_set_text(s_battery_time_layer, "Hello" );
+    layer_add_child(window_layer,text_layer_get_layer(s_battery_time_layer));
+    calculate_battery_time_difference();
+    
+    
     time_t storedTime;
     unsigned long testLong;
     persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
     testLong = (unsigned long)storedTime;
     printf("Time currently in storage (from loading main window) is : %lu", (unsigned long)testLong);
     
+    if(!persist_exists(KEY_BATTERY_TIME)){
+        time_t batteryTime = time(NULL);
+        persist_write_data(KEY_BATTERY_TIME, &batteryTime, sizeof(batteryTime));
+    }
+    
+    s_lightningbolt = gbitmap_create_with_resource(RESOURCE_ID_LIGHTNINGBOLT);
+	s_battery_charging_layer = bitmap_layer_create(GRect(112, 7, 26, 26));
+	bitmap_layer_set_bitmap(s_battery_charging_layer, s_lightningbolt);
+    layer_set_update_proc(bitmap_layer_get_layer(s_battery_charging_layer), lightningbolt_update_proc);
+    if (batteryState.is_charging){
+        layer_set_hidden(bitmap_layer_get_layer(s_battery_charging_layer), false);
+    }
+    else{
+        layer_set_hidden(bitmap_layer_get_layer(s_battery_charging_layer), true);
+    }
+	layer_add_child(window_layer,bitmap_layer_get_layer(s_battery_charging_layer));
     
     
     
-
-
+    
+    
 	connection_service_subscribe((ConnectionHandlers) {
 		.pebble_app_connection_handler = app_connection_handler,
 		.pebblekit_connection_handler = kit_connection_handler
@@ -780,10 +916,65 @@ static void main_window_unload(Window *window) {
 	text_layer_destroy(s_weather_layer);
 }
 
+static void sleep_window_load(Window *window){
+    Layer *window_layer = window_get_root_layer(window);
+	GRect bounds = layer_get_bounds(window_layer);
+    
+    s_sleep_layer = text_layer_create(bounds);
+    text_layer_set_background_color(s_sleep_layer, GColorClear);
+	text_layer_set_text_color(s_sleep_layer, GColorWhite);
+	text_layer_set_text_alignment(s_sleep_layer, GTextAlignmentCenter);
+    text_layer_set_overflow_mode(s_sleep_layer, GTextOverflowModeWordWrap);
+    text_layer_set_font(s_sleep_layer, s_date_font);
+    text_layer_set_text(s_sleep_layer, "The watchface has entered sleep mode.  Shake to wake it up." );
+    layer_add_child(window_layer,text_layer_get_layer(s_sleep_layer));
+}
+
+static void sleep_window_unload(Window *window){
+    text_layer_destroy(s_sleep_layer);
+}
+
+static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) {
+  // Read color preferences
+  Tuple *bg_color_t = dict_find(iter, KEY_BACKGROUNDCOLOR);
+  if(bg_color_t) {
+    GColor bg_color = GColorFromHEX(bg_color_t->value->int32);
+  }
+
+  Tuple *fg_color_t = dict_find(iter, KEY_FOREGROUNDCOLOR);
+  if(fg_color_t) {
+    GColor fg_color = GColorFromHEX(fg_color_t->value->int32);
+  }
+
+  // Read boolean preferences
+  Tuple *second_tick_t = dict_find(iter, KEY_SECOND_TICK);
+  if(second_tick_t) {
+    bool second_ticks = second_tick_t->value->int32 == 1;
+  }
+
+  Tuple *animations_t = dict_find(iter, KEY_ANIMATIONS);
+  if(animations_t) {
+    bool animations = animations_t->value->int32 == 1;
+  }
+
+}
+
+void prv_init(void) {
+  // ...
+
+  // Open AppMessage connection
+  app_message_register_inbox_received(prv_inbox_received_handler);
+  app_message_open(128, 128);
+
+  // ...
+}
+
+
 
 static void init() {
   // Create main Window element and assign to pointer
 	s_main_window = window_create();
+    prv_init();
 
   // Set the background color
 	window_set_background_color(s_main_window, GColorBlack);
@@ -792,6 +983,17 @@ static void init() {
 	window_set_window_handlers(s_main_window, (WindowHandlers) {
 		.load = main_window_load,
 		.unload = main_window_unload
+	});
+    
+    s_sleep_window = window_create();
+
+  // Set the background color
+	window_set_background_color(s_sleep_window, GColorBlack);
+
+  // Set handlers to manage the elements inside the Window
+	window_set_window_handlers(s_sleep_window, (WindowHandlers) {
+		.load = sleep_window_load,
+		.unload = sleep_window_unload
 	});
 
   // Show the Window on the watch, with animated=true

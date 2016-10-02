@@ -1,16 +1,24 @@
 {
     "author": "Pebble",
-    "dependencies": {},
+    "dependencies": {
+        "pebble-clay": "^1.0.2"
+    },
     "keywords": [],
-    "name": "tutorial-3-3",
+    "name": "tempgraph",
     "pebble": {
         "capabilities": [
             "location",
+            "configurable",
             "health"
         ],
-        "displayName": "Tutorial-3-3",
-        "enableMultiJS": false,
+        "displayName": "Temperature Graph",
+        "enableMultiJS": true,
         "messageKeys": {
+            "Animations": 1007,
+            "BackgroundColor": 1004,
+            "BatteryTime": 1003,
+            "ForegroundColor": 1005,
+            "SecondTick": 1006,
             "Time": 1001,
             "cond0": 1002,
             "humidity": 1000,
@@ -219,6 +227,19 @@
         "resources": {
             "media": [
                 {
+                    "file": "images/Lightningbolt",
+                    "memoryFormat": "1Bit",
+                    "name": "LIGHTNINGBOLT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
+                    "file": "images/bluetooth_off",
+                    "name": "BLUETOOTH_OFF",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
                     "file": "images/Steps_below",
                     "name": "STEPS_BELOW",
                     "targetPlatforms": null,
@@ -237,21 +258,15 @@
                     "type": "bitmap"
                 },
                 {
-                    "file": "images/bluetooth_off",
-                    "name": "BLUETOOTH_OFF",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
                     "compatibility": "2.7",
                     "file": "fonts/perfect-dos-vga.ttf",
-                    "name": "FONT_PERFECT_DOS_48",
+                    "name": "FONT_PERFECT_DOS_20",
                     "type": "font"
                 },
                 {
                     "compatibility": "2.7",
                     "file": "fonts/perfect-dos-vga.ttf",
-                    "name": "FONT_PERFECT_DOS_20",
+                    "name": "FONT_PERFECT_DOS_48",
                     "type": "font"
                 },
                 {
@@ -265,9 +280,7 @@
         },
         "sdkVersion": "3",
         "targetPlatforms": [
-            "aplite",
-            "basalt",
-            "chalk"
+            "basalt"
         ],
         "uuid": "41c53f8f-16da-4ba3-bf3e-a90aa036497e",
         "watchapp": {
