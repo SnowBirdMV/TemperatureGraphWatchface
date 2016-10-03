@@ -40,6 +40,7 @@ function locationSuccess(pos) {
 				var pop = parseFloat(json.hourly.data[j].precipProbability) * 100;
 				dictionary["pop" + j] = pop;
 			}
+            dictionary["inboxHandler"] = 1;
             
 			// Send to Pebble
 			Pebble.sendAppMessage(dictionary,

@@ -12,9 +12,14 @@
 #define KEY_WEATHER_STRING 1002
 #define KEY_BATTERY_TIME 1003
 #define KEY_BACKGROUNDCOLOR 1004
-#define KEY_FOREGROUNDCOLOR 1005
+#define KEY_GRID_COLOR 1005
 #define KEY_SECOND_TICK 1006
 #define KEY_ANIMATIONS 1007
+#define KEY_INBOX_HANDLER 10000
+#define KEY_BATTERY_COLOR 1008
+#define KEY_TEMP_COLOR 1009
+#define KEY_POP_COLOR 1010
+#define KEY_BATTERY_UNCHARGED 1011
 
 #define TEMP_DATA_POINTS 20
 #define POP_DATA_POINTS 20
@@ -33,10 +38,12 @@ static TextLayer *s_data_refreshed_time_layer;
 static TextLayer *s_battery_time_layer;
 static TextLayer *s_sleep_layer;
 static TextLayer *s_humidity_layer;
+static TextLayer *s_bgcolor_layer;
 static Layer *s_graph_background;
 static Layer *s_grid_background;
 static Layer *s_battery_charge;
 static Layer *s_battery_behind_clock;
+
 
 
 static BitmapLayer *s_background_layer;
@@ -58,6 +65,13 @@ static GFont s_battery_font;
 static GFont s_weather_font;
 static GFont s_date_font;
 static GFont s_weather_font;
+
+static GColor bg_color;
+static GColor grid_color;
+static GColor battery_color;
+static GColor temp_color;
+static GColor pop_color;
+static GColor uncharged_color;
 
 bool asleep = false;
 int asleep_time = 0;
@@ -212,75 +226,127 @@ static void update_step_average(){
     }
 }
 
-static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
-    printf("%s", "Starting to Parse Weather Data");
-    //persist_write_int(103, time(NULL));
-    time_t curentTime = time(NULL);
-    printf("Storing Recieved Time: %" SCNd32 "\n", time(NULL));
-    persist_write_data(KEY_TIME, &curentTime, sizeof(curentTime));
-    dataTime = curentTime;
-    
-    time_t storedTime;
-    unsigned long testLong;
-    persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
-    testLong = storedTime;
-    printf("unsigned long currently in storage is unsigned long: %lu", testLong);
-    
-  // Store incoming information
-	static char temperature_buffer[8];
-	static char conditions_buffer[32];
-	static char weather_layer_buffer[32];
-    static char humidity_buffer[10];
-    curent_humidity = (int)dict_find(iterator, KEY_HUMIDITY)->value->int32;
-    snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", curent_humidity);
-    text_layer_set_text(s_humidity_layer, humidity_buffer);
-    persist_write_int(KEY_HUMIDITY, curent_humidity);
-    
-	Tuple* temps [TEMP_DATA_POINTS];
-	Tuple* conds [1];
-    Tuple* pops [POP_DATA_POINTS];
-	char conditionStrings[32];
-    conditionStrings[0] = conditionStrings[0];
-	int tempInts[TEMP_DATA_POINTS + 1];
-	for (int i = 0; i < TEMP_DATA_POINTS + 1; i++){
-		tempInts[i] = i;
-	}
-	for (int i = 0; i < TEMP_DATA_POINTS; i++){
-        temps[i] = dict_find(iterator, i + KEY_TEMPERATURE);
-	}
-    for (int i = 0; i < POP_DATA_POINTS; i++){
-		pops[i] = dict_find(iterator, i + KEY_POPDATA);
-	}
-    conds[0] = dict_find(iterator, KEY_WEATHER_STRING);
-    
-    snprintf(temperature_buffer, sizeof(temperature_buffer), "%dF", (int)temps[0]->value->int32);
-	for (int i = 0; i < TEMP_DATA_POINTS; i++){
-        tempInts[i] = (int)temps[i]->value->int32;
-        tempData[i] = tempInts[i];
-        persist_write_int(i + KEY_TEMPERATURE, tempInts[i]);
-        //int test = c.value;   
-	}
-    for (int i = 0; i < POP_DATA_POINTS; i++){
-        popData[i] = (int)pops[i]->value->int32;
-        persist_write_int(i + KEY_POPDATA, popData[i]);
-        //int test = c.value;    
-	}
-    
-    snprintf(conditions_buffer, sizeof(conditions_buffer), "%s", conds[0]->value->cstring);
-	conditionStrings[0] = conditions_buffer[0];
-    printf("Condition Buffer: %s", conditions_buffer);
+static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) {
+  // Read color preferences
+    printf("Recieved configuration settngs");
+    Tuple *bg_color_t = dict_find(iter, KEY_BACKGROUNDCOLOR);
+  if(bg_color_t) {
+      printf("BG color is: %" PRId32, bg_color_t->value->int32);
+      bg_color = GColorFromHEX(bg_color_t->value->int32);
+      text_layer_set_background_color(s_bgcolor_layer, bg_color);
+  }
 
-	static char tempDisplayBuffer[8];
-	static char condDisplayBuffer[32];
-	snprintf(tempDisplayBuffer, sizeof(tempDisplayBuffer), "%dF", (int)temps[0]->value->int32);
-	snprintf(condDisplayBuffer, sizeof(condDisplayBuffer), "%s", conds[0]->value->cstring);
-	snprintf(weather_layer_buffer, sizeof(weather_layer_buffer), "%s, %s", tempDisplayBuffer, condDisplayBuffer);
-	text_layer_set_text(s_weather_layer, weather_layer_buffer);
-    persist_write_string(KEY_WEATHER_STRING, weather_layer_buffer);
-    layer_set_hidden(text_layer_get_layer(s_cached_layer), true);
-    printf("%s", "Finished Parsing Weather Data");
+  Tuple *grid_color_t = dict_find(iter, KEY_GRID_COLOR);
+  if(grid_color_t) {
+      grid_color = GColorFromHEX(grid_color_t->value->int32);
+  }
+  Tuple *battery_color_t = dict_find(iter, KEY_BATTERY_COLOR);
+  if(battery_color_t) {
+      battery_color = GColorFromHEX(battery_color_t->value->int32);
+  }
+  Tuple *temp_color_t = dict_find(iter, KEY_TEMP_COLOR);
+  if(temp_color_t) {
+      temp_color = GColorFromHEX(temp_color_t->value->int32);
+  }
+  Tuple *pop_color_t = dict_find(iter, KEY_POP_COLOR);
+  if(pop_color_t) {
+      pop_color = GColorFromHEX(pop_color_t->value->int32);
+  }
+  Tuple *uncharged_color_t = dict_find(iter, KEY_BATTERY_UNCHARGED);
+  if(uncharged_color_t) {
+      uncharged_color = GColorFromHEX(uncharged_color_t->value->int32);
+  }
+
+  // Read boolean preferences
+  Tuple *second_tick_t = dict_find(iter, KEY_SECOND_TICK);
+  if(second_tick_t) {
+    bool second_ticks = second_tick_t->value->int32 == 1;
+  }
+
+  Tuple *animations_t = dict_find(iter, KEY_ANIMATIONS);
+  if(animations_t) {
+    bool animations = animations_t->value->int32 == 1;
+  }
     layer_mark_dirty(s_graph_background);
-    calculate_data_time_difference();
+
+}
+
+static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
+    if (dict_find(iterator, KEY_HUMIDITY) == NULL){
+        printf("Recieved configuration Data");
+        prv_inbox_received_handler(iterator, context);
+    }
+    else{
+        printf("Recieved Weather Data");
+        printf("%s", "Starting to Parse Weather Data");
+    //persist_write_int(103, time(NULL));
+        time_t curentTime = time(NULL);
+        printf("Storing Recieved Time: %" SCNd32 "\n", time(NULL));
+        persist_write_data(KEY_TIME, &curentTime, sizeof(curentTime));
+        dataTime = curentTime;
+        
+        time_t storedTime;
+        unsigned long testLong;
+        persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
+        testLong = storedTime;
+        printf("unsigned long currently in storage is unsigned long: %lu", testLong);
+        
+  // Store incoming information
+        static char temperature_buffer[8];
+        static char conditions_buffer[32];
+        static char weather_layer_buffer[32];
+        static char humidity_buffer[10];
+        curent_humidity = (int)dict_find(iterator, KEY_HUMIDITY)->value->int32;
+        snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", curent_humidity);
+        text_layer_set_text(s_humidity_layer, humidity_buffer);
+        persist_write_int(KEY_HUMIDITY, curent_humidity);
+        
+        Tuple* temps [TEMP_DATA_POINTS];
+        Tuple* conds [1];
+        Tuple* pops [POP_DATA_POINTS];
+        char conditionStrings[32];
+        conditionStrings[0] = conditionStrings[0];
+        int tempInts[TEMP_DATA_POINTS + 1];
+        for (int i = 0; i < TEMP_DATA_POINTS + 1; i++){
+            tempInts[i] = i;
+        }
+        for (int i = 0; i < TEMP_DATA_POINTS; i++){
+            temps[i] = dict_find(iterator, i + KEY_TEMPERATURE);
+        }
+        for (int i = 0; i < POP_DATA_POINTS; i++){
+            pops[i] = dict_find(iterator, i + KEY_POPDATA);
+        }
+        conds[0] = dict_find(iterator, KEY_WEATHER_STRING);
+        
+        snprintf(temperature_buffer, sizeof(temperature_buffer), "%dF", (int)temps[0]->value->int32);
+        for (int i = 0; i < TEMP_DATA_POINTS; i++){
+            tempInts[i] = (int)temps[i]->value->int32;
+            tempData[i] = tempInts[i];
+            persist_write_int(i + KEY_TEMPERATURE, tempInts[i]);
+        //int test = c.value;   
+        }
+        for (int i = 0; i < POP_DATA_POINTS; i++){
+            popData[i] = (int)pops[i]->value->int32;
+            persist_write_int(i + KEY_POPDATA, popData[i]);
+        //int test = c.value;    
+        }
+        
+        snprintf(conditions_buffer, sizeof(conditions_buffer), "%s", conds[0]->value->cstring);
+        conditionStrings[0] = conditions_buffer[0];
+        printf("Condition Buffer: %s", conditions_buffer);
+
+        static char tempDisplayBuffer[8];
+        static char condDisplayBuffer[32];
+        snprintf(tempDisplayBuffer, sizeof(tempDisplayBuffer), "%dF", (int)temps[0]->value->int32);
+        snprintf(condDisplayBuffer, sizeof(condDisplayBuffer), "%s", conds[0]->value->cstring);
+        snprintf(weather_layer_buffer, sizeof(weather_layer_buffer), "%s, %s", tempDisplayBuffer, condDisplayBuffer);
+        text_layer_set_text(s_weather_layer, weather_layer_buffer);
+        persist_write_string(KEY_WEATHER_STRING, weather_layer_buffer);
+        layer_set_hidden(text_layer_get_layer(s_cached_layer), true);
+        printf("%s", "Finished Parsing Weather Data");
+        layer_mark_dirty(s_graph_background);
+        calculate_data_time_difference();
+    }
 
 }
 
@@ -316,8 +382,8 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 	int x2 = size.w;
 	int y2 = size.h;
 	int xDistance = x2/20;
-    graphics_context_set_stroke_color(ctx, GColorBlue);
-    graphics_context_set_fill_color(ctx, GColorBlue);
+    graphics_context_set_stroke_color(ctx, pop_color);
+    graphics_context_set_fill_color(ctx, pop_color);
     int lastpoppoint = 50 - popData[0]/2;
     for (int i = 0; i < 20; i++){
         graphics_draw_line(ctx, GPoint(i * xDistance, lastpoppoint), GPoint((i + 1) * xDistance, 50 - popData[i]/2));
@@ -326,8 +392,8 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
     }
     popPath = gpath_create(&popPathInfo);
     gpath_draw_filled(ctx, popPath);
-    if (connection_service_peek_pebble_app_connection()){
-        graphics_context_set_stroke_color(ctx, GColorGreen);
+    if (connection_service_peek_pebble_app_connection()){ 
+        graphics_context_set_stroke_color(ctx, grid_color);
     }
     else{
         graphics_context_set_stroke_color(ctx, GColorRed);
@@ -358,7 +424,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 	int scale = ((y2/2)/(max-min));
 	int offset = ((max - min + 2)/2) + (y2 / 2) - min;
 	printf("Scaling the graph by %d, offsetting by %d test %d", scale, offset, (y2/(1000*(max-min))));
-	graphics_context_set_stroke_color(ctx, GColorRed);
+	graphics_context_set_stroke_color(ctx, temp_color);
     int points[21];
     int diff1 = ((max - min) / 2) + min;
 	diff1 = (diff1 + ((y2 / 2 - diff1) * 2.4) - 25) * -1;
@@ -430,7 +496,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 
 static void grid_update_proc(Layer *layer, GContext *ctx){
     if (connection_service_peek_pebble_app_connection()){
-        graphics_context_set_stroke_color(ctx, GColorGreen);
+        graphics_context_set_stroke_color(ctx, grid_color);
     }
     else{
         graphics_context_set_stroke_color(ctx, GColorRed);
@@ -454,8 +520,8 @@ static void battery_charge_update_proc(Layer *layer, GContext *ctx){
         persist_write_data(KEY_BATTERY_TIME, &curentTime, sizeof(curentTime));
     }
     
-	graphics_context_set_stroke_color(ctx, GColorIslamicGreen);
-	graphics_context_set_fill_color(ctx, GColorIslamicGreen);
+	graphics_context_set_stroke_color(ctx, battery_color);
+	graphics_context_set_fill_color(ctx, battery_color);
 	graphics_fill_rect(ctx, GRect(5, 25, 10, -1*state.charge_percent*.2), 0, GCornerNone);
     
 	graphics_context_set_stroke_color(ctx, GColorWhite);
@@ -545,10 +611,10 @@ static void app_connection_handler(bool connected) {
 static void s_battery_behind_clock_update_proc(Layer *layer, GContext *ctx){
 	BatteryChargeState state = battery_state_service_peek();
 
-	graphics_context_set_stroke_color(ctx, GColorGreen);
-	graphics_context_set_fill_color(ctx, GColorDarkGreen );
+	graphics_context_set_stroke_color(ctx, battery_color);
+	graphics_context_set_fill_color(ctx, battery_color );
 	graphics_fill_rect(ctx, GRect(0, 0, state.charge_percent*1.1, 40), 0, GCornerNone);
-	graphics_context_set_fill_color(ctx, GColorDarkCandyAppleRed);
+	graphics_context_set_fill_color(ctx, uncharged_color);
 	graphics_fill_rect(ctx, GRect(state.charge_percent*1.1, 0, 110-state.charge_percent*1.1, 40), 0, GCornerNone);
 }
 static void s_date_layer_update_proc(Layer *layer, GContext *ctx){
@@ -639,7 +705,15 @@ static void main_window_load(Window *window) {
     BatteryChargeState batteryState = battery_state_service_peek();
     
 	Layer *window_layer = window_get_root_layer(window);
+    
+    window_set_background_color(window, bg_color);
+    
 	GRect bounds = layer_get_bounds(window_layer);
+    
+    s_bgcolor_layer = text_layer_create(bounds);
+	text_layer_set_text_color(s_bgcolor_layer, bg_color);
+	layer_add_child(window_layer,text_layer_get_layer(s_bgcolor_layer));
+    
     printf("%"PRIu32 , persist_read_int(KEY_TEMPERATURE));
     for (int i = 0; i < TEMP_DATA_POINTS; i++){
         tempData[i] = persist_read_int(i + KEY_TEMPERATURE);
@@ -874,6 +948,8 @@ static void main_window_load(Window *window) {
     
     
     
+    
+    
 	connection_service_subscribe((ConnectionHandlers) {
 		.pebble_app_connection_handler = app_connection_handler,
 		.pebblekit_connection_handler = kit_connection_handler
@@ -934,30 +1010,7 @@ static void sleep_window_unload(Window *window){
     text_layer_destroy(s_sleep_layer);
 }
 
-static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) {
-  // Read color preferences
-  Tuple *bg_color_t = dict_find(iter, KEY_BACKGROUNDCOLOR);
-  if(bg_color_t) {
-    GColor bg_color = GColorFromHEX(bg_color_t->value->int32);
-  }
 
-  Tuple *fg_color_t = dict_find(iter, KEY_FOREGROUNDCOLOR);
-  if(fg_color_t) {
-    GColor fg_color = GColorFromHEX(fg_color_t->value->int32);
-  }
-
-  // Read boolean preferences
-  Tuple *second_tick_t = dict_find(iter, KEY_SECOND_TICK);
-  if(second_tick_t) {
-    bool second_ticks = second_tick_t->value->int32 == 1;
-  }
-
-  Tuple *animations_t = dict_find(iter, KEY_ANIMATIONS);
-  if(animations_t) {
-    bool animations = animations_t->value->int32 == 1;
-  }
-
-}
 
 void prv_init(void) {
   // ...
