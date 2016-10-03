@@ -251,27 +251,33 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
       printf("BG color is: %" PRId32, bg_color_t->value->int32);
       bg_color = GColorFromHEX(bg_color_t->value->int32);
       text_layer_set_background_color(s_bgcolor_layer, bg_color);
+      persist_write_data(KEY_BACKGROUNDCOLOR, &bg_color, sizeof(bg_color));
   }
 
   Tuple *grid_color_t = dict_find(iter, KEY_GRID_COLOR);
   if(grid_color_t) {
       grid_color = GColorFromHEX(grid_color_t->value->int32);
+      persist_write_data(KEY_GRID_COLOR, &grid_color, sizeof(grid_color));
   }
   Tuple *battery_color_t = dict_find(iter, KEY_BATTERY_COLOR);
   if(battery_color_t) {
       battery_color = GColorFromHEX(battery_color_t->value->int32);
+      persist_write_data(KEY_BATTERY_COLOR, &battery_color, sizeof(battery_color));
   }
   Tuple *temp_color_t = dict_find(iter, KEY_TEMP_COLOR);
   if(temp_color_t) {
       temp_color = GColorFromHEX(temp_color_t->value->int32);
+      persist_write_data(KEY_TEMP_COLOR, &temp_color, sizeof(temp_color));
   }
   Tuple *pop_color_t = dict_find(iter, KEY_POP_COLOR);
   if(pop_color_t) {
       pop_color = GColorFromHEX(pop_color_t->value->int32);
+      persist_write_data(KEY_POP_COLOR, &pop_color, sizeof(pop_color));
   }
   Tuple *uncharged_color_t = dict_find(iter, KEY_BATTERY_UNCHARGED);
   if(uncharged_color_t) {
       uncharged_color = GColorFromHEX(uncharged_color_t->value->int32);
+      persist_write_data(KEY_BATTERY_UNCHARGED, &uncharged_color, sizeof(uncharged_color));
   }
 
   // Read boolean preferences
@@ -723,6 +729,24 @@ static void lightningbolt_update_proc(Layer *layer, GContext *ctx){
     graphics_draw_bitmap_in_rect(ctx, s_lightningbolt, gbitmap_get_bounds(s_lightningbolt));
 }
 
+static void bluetooth_on_proc(Layer *layer, GContext *ctx){
+    graphics_context_set_compositing_mode(ctx, GCompOpSet);
+    graphics_draw_bitmap_in_rect(ctx, s_bluetooth_on, gbitmap_get_bounds(s_bluetooth_on));
+}
+static void bluetooth_off_proc(Layer *layer, GContext *ctx){
+    graphics_context_set_compositing_mode(ctx, GCompOpSet);
+    graphics_draw_bitmap_in_rect(ctx, s_bluetooth_off, gbitmap_get_bounds(s_bluetooth_off));
+}
+
+static void steps_above_update_proc(Layer *layer, GContext *ctx){
+    graphics_context_set_compositing_mode(ctx, GCompOpSet);
+    graphics_draw_bitmap_in_rect(ctx, s_steps_above_image, gbitmap_get_bounds(s_steps_above_image));
+}
+static void steps_below_update_proc(Layer *layer, GContext *ctx){
+    graphics_context_set_compositing_mode(ctx, GCompOpSet);
+    graphics_draw_bitmap_in_rect(ctx, s_steps_below_image, gbitmap_get_bounds(s_steps_below_image));
+}
+
 
 
 static void main_window_load(Window *window) {
@@ -841,12 +865,14 @@ static void main_window_load(Window *window) {
 	bitmap_layer_set_bitmap(s_bluetooth_image, s_bluetooth_off);
 	layer_set_frame(bitmap_layer_get_layer(s_bluetooth_image), GRect(123, -1, 26, 26));
 	layer_add_child(window_layer,bitmap_layer_get_layer(s_bluetooth_image));
+    layer_set_update_proc(bitmap_layer_get_layer(s_bluetooth_image), bluetooth_off_proc);
 
 	s_bluetooth_on = gbitmap_create_with_resource(RESOURCE_ID_BLUETOOTH_ON);
 	s_bluetooth_image_on = bitmap_layer_create(bounds);
 	bitmap_layer_set_bitmap(s_bluetooth_image_on, s_bluetooth_on);
 	layer_set_frame(bitmap_layer_get_layer(s_bluetooth_image_on), GRect(123, -1, 26, 26));
 	layer_add_child(window_layer,bitmap_layer_get_layer(s_bluetooth_image_on));
+    layer_set_update_proc(bitmap_layer_get_layer(s_bluetooth_image_on), bluetooth_on_proc);
 
 	bool app_connection = connection_service_peek_pebble_app_connection();
 	if (app_connection){
@@ -906,12 +932,14 @@ static void main_window_load(Window *window) {
 	bitmap_layer_set_bitmap(s_steps_above_layer, s_steps_above_image);
 	layer_set_frame(bitmap_layer_get_layer(s_steps_above_layer), GRect(0, 111, 20, 20));
 	layer_add_child(window_layer,bitmap_layer_get_layer(s_steps_above_layer));
+    layer_set_update_proc(bitmap_layer_get_layer(s_steps_above_layer), steps_above_update_proc);
     
     s_steps_below_image = gbitmap_create_with_resource(RESOURCE_ID_STEPS_BELOW);
 	s_steps_below_layer = bitmap_layer_create(bounds);
 	bitmap_layer_set_bitmap(s_steps_below_layer, s_steps_below_image);
 	layer_set_frame(bitmap_layer_get_layer(s_steps_below_layer), GRect(0, 111, 20, 20));
 	layer_add_child(window_layer,bitmap_layer_get_layer(s_steps_below_layer));
+    layer_set_update_proc(bitmap_layer_get_layer(s_steps_above_layer), steps_below_update_proc);
     
     update_step_average();
     
@@ -1047,54 +1075,68 @@ void prv_init(void) {
 }
 
 static void checkStorage(){
+    int numKeys = 0;
     if(!persist_exists(KEY_TEMPERATURE)){
         for (int i = 0; i < TEMP_DATA_POINTS; i++){
             persist_write_int(KEY_TEMPERATURE + i, 0);
+            numKeys++;
         }
     }
     if(!persist_exists(KEY_POPDATA)){
         for (int i = 0; i < POP_DATA_POINTS; i++){
             persist_write_int(KEY_POPDATA + i, 0);
+            numKeys++;
         }
     }
     if(!persist_exists(KEY_HUMIDITY)){
         persist_write_int(KEY_HUMIDITY, 0);
+        numKeys++;
     }
     if(!persist_exists(KEY_TIME)){
         time_t curentTime = time(NULL);
         persist_write_data(KEY_TIME, &curentTime, sizeof(curentTime));
+        numKeys++;
     }
     if(!persist_exists(KEY_WEATHER_STRING)){
         persist_write_string(KEY_WEATHER_STRING, "Loading...");
+        numKeys++;
     }
     if(!persist_exists(KEY_BATTERY_TIME)){
         time_t theTime = time(NULL);
         persist_write_data(KEY_BATTERY_TIME, &theTime, sizeof(theTime));
+        numKeys++;
     }
     if(!persist_exists(KEY_BACKGROUNDCOLOR)){
         GColor bgcolor = GColorBlack;
         persist_write_data(KEY_BACKGROUNDCOLOR, &bgcolor, sizeof(bgcolor));
+        numKeys++;
     }
     if(!persist_exists(KEY_GRID_COLOR)){
         GColor gridcolor = GColorGreen;
         persist_write_data(KEY_GRID_COLOR, &gridcolor, sizeof(gridcolor));
+        numKeys++;
     }
     if(!persist_exists(KEY_BATTERY_COLOR)){
         GColor batterycolor = GColorIslamicGreen;
         persist_write_data(KEY_BATTERY_COLOR, &batterycolor, sizeof(batterycolor));
+        numKeys++;
     }
     if(!persist_exists(KEY_TEMP_COLOR)){
         GColor tempcolor = GColorRed;
         persist_write_data(KEY_TEMP_COLOR, &tempcolor, sizeof(tempcolor));
+        numKeys++;
     }
     if(!persist_exists(KEY_POP_COLOR)){
         GColor popcolor = GColorBlue;
         persist_write_data(KEY_POP_COLOR, &popcolor, sizeof(popcolor));
+        numKeys++;
     }
     if(!persist_exists(KEY_BATTERY_UNCHARGED)){
         GColor batteryunchargedcolor = GColorDarkCandyAppleRed;
         persist_write_data(KEY_BATTERY_UNCHARGED, &batteryunchargedcolor, sizeof(batteryunchargedcolor));
+        numKeys++;
     } 
+    printf("Generated %d defaults in storage", numKeys);
     storeOptions();
 }
 
