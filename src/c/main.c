@@ -66,21 +66,32 @@ static GFont s_weather_font;
 static GFont s_date_font;
 static GFont s_weather_font;
 
-static GColor bg_color;
-static GColor grid_color;
-static GColor battery_color;
-static GColor temp_color;
-static GColor pop_color;
-static GColor uncharged_color;
+ GColor bg_color;
+ GColor grid_color;
+ GColor battery_color;
+ GColor temp_color;
+ GColor pop_color;
+ GColor uncharged_color;
 
 bool asleep = false;
 int asleep_time = 0;
+
+static char reasonStr[20];
 
 int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int curent_humidity = 0;
 
 unsigned long dataTime = 0;
+
+static void storeOptions(){
+    persist_read_data(KEY_BACKGROUNDCOLOR, &bg_color, sizeof(bg_color));
+    persist_read_data(KEY_GRID_COLOR, &grid_color, sizeof(grid_color));
+    persist_read_data(KEY_BATTERY_COLOR, &battery_color, sizeof(battery_color));
+    persist_read_data(KEY_TEMP_COLOR, &temp_color, sizeof(temp_color));
+    persist_read_data(KEY_POP_COLOR, &pop_color, sizeof(pop_color));
+    persist_read_data(KEY_BATTERY_UNCHARGED, &uncharged_color, sizeof(uncharged_color));
+}
 
 void calculate_data_time_difference(){
     time_t storedTime;
@@ -706,12 +717,12 @@ static void main_window_load(Window *window) {
     
 	Layer *window_layer = window_get_root_layer(window);
     
-    window_set_background_color(window, bg_color);
+    window_set_background_color(window, GColorBlack);
     
 	GRect bounds = layer_get_bounds(window_layer);
     
     s_bgcolor_layer = text_layer_create(bounds);
-	text_layer_set_text_color(s_bgcolor_layer, bg_color);
+	text_layer_set_background_color(s_bgcolor_layer, bg_color);
 	layer_add_child(window_layer,text_layer_get_layer(s_bgcolor_layer));
     
     printf("%"PRIu32 , persist_read_int(KEY_TEMPERATURE));
@@ -1016,16 +1027,121 @@ void prv_init(void) {
   // ...
 
   // Open AppMessage connection
-  app_message_register_inbox_received(prv_inbox_received_handler);
-  app_message_open(128, 128);
+  //app_message_register_inbox_received(prv_inbox_received_handler);
 
   // ...
 }
 
+static void checkStorage(){
+    if(!persist_exists(KEY_TEMPERATURE)){
+        for (int i = 0; i < TEMP_DATA_POINTS; i++){
+            persist_write_int(KEY_TEMPERATURE + i, 0);
+        }
+    }
+    if(!persist_exists(KEY_POPDATA)){
+        for (int i = 0; i < POP_DATA_POINTS; i++){
+            persist_write_int(KEY_POPDATA + i, 0);
+        }
+    }
+    if(!persist_exists(KEY_HUMIDITY)){
+        persist_write_int(KEY_HUMIDITY, 0);
+    }
+    if(!persist_exists(KEY_TIME)){
+        time_t curentTime = time(NULL);
+        persist_write_data(KEY_TIME, &curentTime, sizeof(curentTime));
+    }
+    if(!persist_exists(KEY_WEATHER_STRING)){
+        persist_write_string(KEY_WEATHER_STRING, "Loading...");
+    }
+    if(!persist_exists(KEY_BATTERY_TIME)){
+        time_t theTime = time(NULL);
+        persist_write_data(KEY_BATTERY_TIME, &theTime, sizeof(theTime));
+    }
+    if(!persist_exists(KEY_BACKGROUNDCOLOR)){
+        GColor bgcolor = GColorBlack;
+        persist_write_data(KEY_BACKGROUNDCOLOR, &bgcolor, sizeof(bgcolor));
+    }
+    if(!persist_exists(KEY_GRID_COLOR)){
+        GColor gridcolor = GColorGreen;
+        persist_write_data(KEY_GRID_COLOR, &gridcolor, sizeof(gridcolor));
+    }
+    if(!persist_exists(KEY_BATTERY_COLOR)){
+        GColor batterycolor = GColorIslamicGreen;
+        persist_write_data(KEY_BATTERY_COLOR, &batterycolor, sizeof(batterycolor));
+    }
+    if(!persist_exists(KEY_TEMP_COLOR)){
+        GColor tempcolor = GColorRed;
+        persist_write_data(KEY_GRID_COLOR, &tempcolor, sizeof(tempcolor));
+    }
+    if(!persist_exists(KEY_POP_COLOR)){
+        GColor popcolor = GColorBlue;
+        persist_write_data(KEY_POP_COLOR, &popcolor, sizeof(popcolor));
+    }
+    if(!persist_exists(KEY_BATTERY_UNCHARGED)){
+        GColor batteryunchargedcolor = GColorDarkCandyAppleRed;
+        persist_write_data(KEY_BATTERY_UNCHARGED, &batteryunchargedcolor, sizeof(batteryunchargedcolor));
+    } 
+    storeOptions();
+}
+
+static void getAppMessageResult(AppMessageResult reason, void *context){
+
+switch(reason){
+case APP_MSG_OK:
+snprintf(reasonStr,20,"%s","APP_MSG_OK");
+break;
+case APP_MSG_SEND_TIMEOUT:
+snprintf(reasonStr,20,"%s","SEND TIMEOUT");
+break;
+case APP_MSG_SEND_REJECTED:
+snprintf(reasonStr,20,"%s","SEND REJECTED");
+break;
+case APP_MSG_NOT_CONNECTED:
+snprintf(reasonStr,20,"%s","NOT CONNECTED");
+break;
+case APP_MSG_APP_NOT_RUNNING:
+snprintf(reasonStr,20,"%s","NOT RUNNING");
+break;
+case APP_MSG_INVALID_ARGS:
+snprintf(reasonStr,20,"%s","INVALID ARGS");
+break;
+case APP_MSG_BUSY:
+snprintf(reasonStr,20,"%s","BUSY");
+break;
+case APP_MSG_BUFFER_OVERFLOW:
+snprintf(reasonStr,20,"%s","BUFFER OVERFLOW");
+break;
+case APP_MSG_ALREADY_RELEASED:
+snprintf(reasonStr,20,"%s","ALRDY RELEASED");
+break;
+case APP_MSG_CALLBACK_ALREADY_REGISTERED:
+snprintf(reasonStr,20,"%s","CLB ALR REG");
+break;
+case APP_MSG_CALLBACK_NOT_REGISTERED:
+snprintf(reasonStr,20,"%s","CLB NOT REG");
+break;
+case APP_MSG_OUT_OF_MEMORY:
+snprintf(reasonStr,20,"%s","OUT OF MEM");
+break;
+case APP_MSG_CLOSED:
+snprintf(reasonStr,20,"%s","CLOSED APP MSG");
+break;
+case APP_MSG_INTERNAL_ERROR:
+snprintf(reasonStr,20,"%s","INTERNAL ERROR");
+break;
+case APP_MSG_INVALID_STATE:
+snprintf(reasonStr,20,"%s","INVALID STATE");
+break;
+}
+printf("App Message fail because of: %s", reasonStr);
+}
 
 
 static void init() {
   // Create main Window element and assign to pointer
+    checkStorage();
+    bg_color = GColorBlack;
+    
 	s_main_window = window_create();
     prv_init();
 
@@ -1070,7 +1186,7 @@ static void init() {
     printf("%s", "Registering callbacks");
     // Register callbacks
 	app_message_register_inbox_received(inbox_received_callback);
-	app_message_register_inbox_dropped(inbox_dropped_callback);
+	app_message_register_inbox_dropped(getAppMessageResult);
 	app_message_register_outbox_failed(outbox_failed_callback);
 	app_message_register_outbox_sent(outbox_sent_callback);
     printf("%s", "Finished Registering callbacks");

@@ -23,31 +23,31 @@ module.exports = [
         {
             "type": "color",
             "messageKey": "GridColor",
-            "defaultValue": "0xFFFFFF",
+            "defaultValue": "0x00FF00",
             "label": "Grid Color"
         },
         {
             "type": "color",
             "messageKey": "BatteryChargeColor",
-            "defaultValue": "0xFFFFFF",
+            "defaultValue": "0x00AA00",
             "label": "Battery Charge Color"
         },
         {
             "type": "color",
             "messageKey": "TempLineColor",
-            "defaultValue": "0xFFFFFF",
+            "defaultValue": "0xFF0000",
             "label": "Temprature line color"
         },
         {
             "type": "color",
             "messageKey": "popGraphColor",
-            "defaultValue": "0xFFFFFF",
+            "defaultValue": "0x0000FF",
             "label": "Precipitation Graph Color"
         },
         {
             "type": "color",
             "messageKey": "BatteryUnchargedColor",
-            "defaultValue": "0xFFFFFF",
+            "defaultValue": "0xAA0000",
             "label": "Battery dead color"
         },
     ]
