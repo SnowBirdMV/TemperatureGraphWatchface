@@ -16,6 +16,7 @@
 #define KEY_SECOND_TICK 1006
 #define KEY_ANIMATIONS 1007
 #define KEY_INBOX_HANDLER 10000
+#define KEY_JS_READY 10001
 #define KEY_BATTERY_COLOR 1008
 #define KEY_TEMP_COLOR 1009
 #define KEY_POP_COLOR 1010
@@ -83,6 +84,11 @@ int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int curent_humidity = 0;
 
 unsigned long dataTime = 0;
+static bool s_js_ready = true;
+
+bool comm_is_js_ready() {
+  return s_js_ready;
+}
 
 static void storeOptions(){
     persist_read_data(KEY_BACKGROUNDCOLOR, &bg_color, sizeof(bg_color));
@@ -283,6 +289,12 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 }
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
+    Tuple *ready_tuple = dict_find(iterator, MESSAGE_KEY_JSReady);
+    if(ready_tuple) {
+        printf("Pebble JS is ready in C");
+        // PebbleKit JS is ready! Safe to send messages
+        s_js_ready = true;
+    }
     if (dict_find(iterator, KEY_HUMIDITY) == NULL){
         printf("Recieved configuration Data");
         prv_inbox_received_handler(iterator, context);
@@ -550,19 +562,11 @@ static void battery_charge_update_proc(Layer *layer, GContext *ctx){
 	text_layer_set_text(s_battery_charge_layer, battery_buffer );
 	
 }
-
-
-static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-    if (!asleep){
-	    update_time();
-        update_step_average();
-        calculate_data_time_difference();
-        calculate_battery_time_difference();
-    
-        // Get weather update every 30 minutes
+static void updateWeather(){
+    // Get weather update every 30 minutes
         time_t storedTime;
         persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
-	    if((unsigned long)time(NULL) - (unsigned long)storedTime > 3599) {
+	    if((unsigned long)time(NULL) - (unsigned long)storedTime > 3599 && comm_is_js_ready()) {
             printf("Time difference is %lu, time1: %lu, time2: %lu", (unsigned long)time(NULL) - (unsigned long)storedTime, (unsigned long)time(NULL), (unsigned long)storedTime);
 	        // Begin dictionary
 		    DictionaryIterator *iter;
@@ -575,6 +579,16 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
             printf("Sent request for weather to phone.");
 		    app_message_outbox_send();
 	    }
+}
+
+static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+    if (!asleep){
+	    update_time();
+        update_step_average();
+        calculate_data_time_difference();
+        calculate_battery_time_difference();
+        updateWeather();
+    
     }
     else{
         printf("I am assleep");
@@ -1071,7 +1085,7 @@ static void checkStorage(){
     }
     if(!persist_exists(KEY_TEMP_COLOR)){
         GColor tempcolor = GColorRed;
-        persist_write_data(KEY_GRID_COLOR, &tempcolor, sizeof(tempcolor));
+        persist_write_data(KEY_TEMP_COLOR, &tempcolor, sizeof(tempcolor));
     }
     if(!persist_exists(KEY_POP_COLOR)){
         GColor popcolor = GColorBlue;

@@ -20,6 +20,7 @@
             "BatteryTime": 1003,
             "BatteryUnchargedColor": 1011,
             "GridColor": 1005,
+            "JSReady": 10001,
             "SecondTick": 1006,
             "TempLineColor": 1009,
             "Time": 1001,

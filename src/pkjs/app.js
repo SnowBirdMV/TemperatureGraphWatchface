@@ -1,6 +1,5 @@
 var myAPIKey = 'cc1720352689e95736d730b20dfc9288';
 
-
 var xhrRequest = function (url, type, callback) {
 	var xhr = new XMLHttpRequest();
 	xhr.onload = function () {
@@ -71,6 +70,7 @@ function getWeather() {
 Pebble.addEventListener('ready', 
 	function(e) {
 		console.log("PebbleKit JS ready!");
+        Pebble.sendAppMessage({'JSReady': 1});
 
 		// Get the initial weather
 		getWeather();
