@@ -21,6 +21,17 @@
 #define KEY_TEMP_COLOR 1009
 #define KEY_POP_COLOR 1010
 #define KEY_BATTERY_UNCHARGED 1011
+#define KEY_TIME_COLOR 1012
+#define KEY_DATE_COLOR 1013
+#define KEY_BATTERY_PERCENTAGE 1014
+#define KEY_TEMP_NUMBER_COLOR 1015
+#define KEY_STEPS_COLOR 1016
+#define KEY_DATA_TIME_COLOR 1017
+#define KEY_BATTERY_LIFE_COLOR 1018
+#define KEY_HUMIDITY_COLOR 1019
+#define KEY_WEATHER_COLOR 1020
+#define KEY_GRAPH_LINE_COLOR 1021
+#define KEY_BATTERY_OUTLINE_COLOR 1022
 
 #define TEMP_DATA_POINTS 20
 #define POP_DATA_POINTS 20
@@ -67,12 +78,23 @@ static GFont s_weather_font;
 static GFont s_date_font;
 static GFont s_weather_font;
 
- GColor bg_color;
- GColor grid_color;
- GColor battery_color;
- GColor temp_color;
- GColor pop_color;
- GColor uncharged_color;
+GColor bg_color;
+GColor grid_color;
+GColor battery_color;
+GColor temp_color;
+GColor pop_color;
+GColor uncharged_color;
+GColor time_color;
+GColor date_color;
+GColor battery_percentage_color;
+GColor temp_number_color;
+GColor steps_color;
+GColor data_time_color;
+GColor battery_life_color;
+GColor weather_color;
+GColor humidity_color;
+GColor graph_line_color;
+GColor battery_outline_color;
 
 bool asleep = false;
 int asleep_time = 0;
@@ -97,6 +119,17 @@ static void storeOptions(){
     persist_read_data(KEY_TEMP_COLOR, &temp_color, sizeof(temp_color));
     persist_read_data(KEY_POP_COLOR, &pop_color, sizeof(pop_color));
     persist_read_data(KEY_BATTERY_UNCHARGED, &uncharged_color, sizeof(uncharged_color));
+    persist_read_data(KEY_TIME_COLOR, &time_color, sizeof(time_color));
+    persist_read_data(KEY_DATE_COLOR, &date_color, sizeof(date_color));
+    persist_read_data(KEY_BATTERY_PERCENTAGE, &battery_percentage_color, sizeof(battery_percentage_color));
+    persist_read_data(KEY_TEMP_NUMBER_COLOR, &temp_number_color, sizeof(temp_number_color));
+    persist_read_data(KEY_STEPS_COLOR, &steps_color, sizeof(steps_color));
+    persist_read_data(KEY_DATA_TIME_COLOR, &data_time_color, sizeof(data_time_color));
+    persist_read_data(KEY_BATTERY_LIFE_COLOR, &battery_life_color, sizeof(battery_life_color));
+    persist_read_data(KEY_HUMIDITY_COLOR, &humidity_color, sizeof(humidity_color));
+    persist_read_data(KEY_WEATHER_COLOR, &weather_color, sizeof(weather_color));
+    persist_read_data(KEY_GRAPH_LINE_COLOR, &graph_line_color, sizeof(graph_line_color));
+    persist_read_data(KEY_BATTERY_OUTLINE_COLOR, &battery_outline_color, sizeof(battery_outline_color));
 }
 
 void calculate_data_time_difference(){
@@ -125,7 +158,7 @@ void calculate_data_time_difference(){
         else{
             snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lud %luh", timeDifference / 86400, timeDifference / 3600 % 24);
         }
-        
+        text_layer_set_text_color(s_refreshed_time_layer, data_time_color);
         text_layer_set_text(s_refreshed_time_layer, refreshTimeBuffer );
         printf("Time sence last data refresh is: %s", refreshTimeBuffer);
         
@@ -279,6 +312,61 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
       uncharged_color = GColorFromHEX(uncharged_color_t->value->int32);
       persist_write_data(KEY_BATTERY_UNCHARGED, &uncharged_color, sizeof(uncharged_color));
   }
+    Tuple *time_color_t = dict_find(iter, KEY_TIME_COLOR);
+  if(time_color_t) {
+      time_color = GColorFromHEX(time_color_t->value->int32);
+      persist_write_data(KEY_TIME_COLOR, &time_color, sizeof(time_color));
+  }
+    Tuple *date_color_t = dict_find(iter, KEY_DATE_COLOR);
+  if(date_color_t) {
+      date_color = GColorFromHEX(date_color_t->value->int32);
+      persist_write_data(KEY_DATE_COLOR, &date_color, sizeof(date_color));
+  }
+    Tuple *battery_percentage_color_t = dict_find(iter, KEY_BATTERY_PERCENTAGE);
+  if(battery_percentage_color_t) {
+      battery_percentage_color = GColorFromHEX(battery_percentage_color_t->value->int32);
+      persist_write_data(KEY_BATTERY_PERCENTAGE, &battery_percentage_color, sizeof(battery_percentage_color));
+  }
+    Tuple *temp_number_color_t = dict_find(iter, KEY_TEMP_NUMBER_COLOR);
+  if(temp_number_color_t) {
+      temp_number_color = GColorFromHEX(temp_number_color_t->value->int32);
+      persist_write_data(KEY_TEMP_NUMBER_COLOR, &temp_number_color, sizeof(temp_number_color));
+  }
+    Tuple *steps_color_t = dict_find(iter, KEY_STEPS_COLOR);
+  if(steps_color_t) {
+      steps_color = GColorFromHEX(steps_color_t->value->int32);
+      persist_write_data(KEY_STEPS_COLOR, &steps_color, sizeof(steps_color));
+  }
+    Tuple *data_time_color_t = dict_find(iter, KEY_DATA_TIME_COLOR);
+  if(data_time_color_t) {
+      data_time_color = GColorFromHEX(data_time_color_t->value->int32);
+      persist_write_data(KEY_DATA_TIME_COLOR, &data_time_color, sizeof(data_time_color));
+  }
+    Tuple *battery_life_color_t = dict_find(iter, KEY_BATTERY_LIFE_COLOR);
+  if(battery_life_color_t) {
+      battery_life_color = GColorFromHEX(battery_life_color_t->value->int32);
+      persist_write_data(KEY_BATTERY_LIFE_COLOR, &battery_life_color, sizeof(battery_life_color));
+  }
+    Tuple *weather_color_t = dict_find(iter, KEY_WEATHER_COLOR);
+  if(weather_color_t) {
+      weather_color = GColorFromHEX(weather_color_t->value->int32);
+      persist_write_data(KEY_WEATHER_COLOR, &weather_color, sizeof(weather_color));
+  }
+    Tuple *humidity_color_t = dict_find(iter, KEY_HUMIDITY_COLOR);
+  if(humidity_color_t) {
+      humidity_color = GColorFromHEX(humidity_color_t->value->int32);
+      persist_write_data(KEY_HUMIDITY_COLOR, &humidity_color, sizeof(humidity_color));
+  }
+    Tuple *graph_line_color_t = dict_find(iter, KEY_GRAPH_LINE_COLOR);
+  if(graph_line_color_t) {
+      graph_line_color = GColorFromHEX(graph_line_color_t->value->int32);
+      persist_write_data(KEY_GRAPH_LINE_COLOR, &graph_line_color, sizeof(graph_line_color));
+  }
+    Tuple *battery_outline_color_t = dict_find(iter, KEY_BATTERY_OUTLINE_COLOR);
+  if(battery_outline_color_t) {
+      battery_outline_color = GColorFromHEX(battery_outline_color_t->value->int32);
+      persist_write_data(KEY_BATTERY_OUTLINE_COLOR, &battery_outline_color, sizeof(battery_outline_color));
+  }
 
   // Read boolean preferences
   Tuple *second_tick_t = dict_find(iter, KEY_SECOND_TICK);
@@ -327,6 +415,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         static char humidity_buffer[10];
         curent_humidity = (int)dict_find(iterator, KEY_HUMIDITY)->value->int32;
         snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", curent_humidity);
+        text_layer_set_text_color(s_humidity_layer, humidity_color);
         text_layer_set_text(s_humidity_layer, humidity_buffer);
         persist_write_int(KEY_HUMIDITY, curent_humidity);
         
@@ -369,6 +458,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
         snprintf(tempDisplayBuffer, sizeof(tempDisplayBuffer), "%dF", (int)temps[0]->value->int32);
         snprintf(condDisplayBuffer, sizeof(condDisplayBuffer), "%s", conds[0]->value->cstring);
         snprintf(weather_layer_buffer, sizeof(weather_layer_buffer), "%s, %s", tempDisplayBuffer, condDisplayBuffer);
+        text_layer_set_text_color(s_weather_layer, weather_color);
         text_layer_set_text(s_weather_layer, weather_layer_buffer);
         persist_write_string(KEY_WEATHER_STRING, weather_layer_buffer);
         layer_set_hidden(text_layer_get_layer(s_cached_layer), true);
@@ -432,7 +522,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 	graphics_draw_line(ctx, GPoint(x2-1,y2-1), GPoint(0,y2-1));
     //graphics_draw_line(ctx, GPoint(0,y2-1), GPoint(0,0));
 	int lastY = tempData[0]/2;
-	graphics_context_set_stroke_color(ctx, GColorDarkGray);
+	graphics_context_set_stroke_color(ctx, graph_line_color);
 	for (int i = 0; i < 20; i = i + 4){
 		graphics_draw_line(ctx, GPoint((i + 1) * xDistance, y2), GPoint((i + 1) * xDistance, 0));
 	}
@@ -471,6 +561,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 		//printf("newPointY %d, tempDatai %d, y2 %d, diff %d", points[i], tempData[i], y2, diffs[i]);
 		graphics_draw_line(ctx, GPoint((i-1)*xDistance,lastY), GPoint(i*xDistance,points[i]));
 		graphics_draw_line(ctx, GPoint((i-1)*xDistance,lastY+1), GPoint(i*xDistance,points[i]+1));
+        graphics_context_set_text_color(ctx, temp_number_color);
 		if (i % 4 == 0){
             if (i != 20){
                 static char graph_temp_buffer[10];
@@ -553,7 +644,7 @@ static void battery_charge_update_proc(Layer *layer, GContext *ctx){
 	graphics_context_set_fill_color(ctx, battery_color);
 	graphics_fill_rect(ctx, GRect(5, 25, 10, -1*state.charge_percent*.2), 0, GCornerNone);
     
-	graphics_context_set_stroke_color(ctx, GColorWhite);
+	graphics_context_set_stroke_color(ctx, battery_outline_color);
 	graphics_draw_line(ctx, GPoint(5,5), GPoint(5,25));
 	graphics_draw_line(ctx, GPoint(5,25), GPoint(15,25));
 	graphics_draw_line(ctx, GPoint(15,25), GPoint(15,5));
@@ -565,11 +656,12 @@ static void battery_charge_update_proc(Layer *layer, GContext *ctx){
 	static char battery_buffer[100];
 	snprintf(battery_buffer,sizeof(battery_buffer) , "%d%%", batteryPercent);
 	printf("Battery Level is: %s", battery_buffer);
+    text_layer_set_text_color(s_battery_charge_layer, battery_percentage_color);
 	text_layer_set_text(s_battery_charge_layer, battery_buffer );
 	
 }
 static void updateWeather(){
-    // Get weather update every 30 minutes
+    // Get weather update every hour
         time_t storedTime;
         persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
 	    if((unsigned long)time(NULL) - (unsigned long)storedTime > 3599 && comm_is_js_ready()) {
@@ -693,6 +785,7 @@ static void health_handler(HealthEventType event, void *context) {
 static void update_humidity(){
     static char humidity_buffer[10];
     snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", curent_humidity);
+    text_layer_set_text_color(s_humidity_layer, humidity_color);
     text_layer_set_text(s_humidity_layer, humidity_buffer);
 }
 
@@ -806,7 +899,7 @@ static void main_window_load(Window *window) {
 
   // Improve the layout to be more like a watchface
 	text_layer_set_background_color(s_time_layer, GColorClear);
-	text_layer_set_text_color(s_time_layer, GColorWhite);
+	text_layer_set_text_color(s_time_layer, time_color);
 	text_layer_set_text(s_time_layer, "00:00");
 	text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
 
@@ -822,7 +915,7 @@ static void main_window_load(Window *window) {
 
   // Style the text
 	text_layer_set_background_color(s_weather_layer, GColorClear);
-	text_layer_set_text_color(s_weather_layer, GColorWhite);
+	text_layer_set_text_color(s_weather_layer, weather_color);
 	text_layer_set_text_alignment(s_weather_layer, GTextAlignmentCenter);
     static char weather_layer_buffer[100];
     persist_read_string(KEY_WEATHER_STRING, weather_layer_buffer, 100);
@@ -831,6 +924,7 @@ static void main_window_load(Window *window) {
   // Create second custom font, apply it and add to Window
 	s_weather_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_PERFECT_DOS_20));
 	text_layer_set_font(s_weather_layer, s_date_font);
+    text_layer_set_text_color(s_weather_layer, weather_color);
     text_layer_set_text(s_weather_layer, weather_layer_buffer);
 	layer_add_child(window_layer, text_layer_get_layer(s_weather_layer));
     
@@ -896,21 +990,21 @@ static void main_window_load(Window *window) {
 	s_battery_charge_layer = text_layer_create(GRect(113, 24, 30, 40));
 	text_layer_set_font(s_battery_charge_layer, s_battery_font);
 	text_layer_set_background_color(s_battery_charge_layer, GColorClear);
-	text_layer_set_text_color(s_battery_charge_layer, GColorWhite);
+	text_layer_set_text_color(s_battery_charge_layer, battery_percentage_color);
 	text_layer_set_text_alignment(s_battery_charge_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer,text_layer_get_layer(s_battery_charge_layer));
 
 
 	s_date_layer = text_layer_create(GRect(0, 34, 144, 25));
 	text_layer_set_background_color(s_date_layer, GColorClear);
-	text_layer_set_text_color(s_date_layer, GColorWhite);
+	text_layer_set_text_color(s_date_layer, date_color);
 	text_layer_set_text_alignment(s_date_layer, GTextAlignmentCenter);
 	text_layer_set_font(s_date_layer, s_date_font);
 	layer_add_child(window_layer,text_layer_get_layer(s_date_layer));
     
     s_steps_layer = text_layer_create(GRect(20, 105, 40, 25));
     text_layer_set_background_color(s_steps_layer, GColorClear);
-	text_layer_set_text_color(s_steps_layer, GColorWhite);
+	text_layer_set_text_color(s_steps_layer, steps_color);
 	text_layer_set_text_alignment(s_steps_layer, GTextAlignmentLeft);
     text_layer_set_font(s_steps_layer, s_date_font);
     static char stepBuffer[10];
@@ -945,9 +1039,9 @@ static void main_window_load(Window *window) {
     
     s_humidity_layer = text_layer_create(GRect(95, 104, 40, 25));
     text_layer_set_background_color(s_humidity_layer, GColorClear);
-	text_layer_set_text_color(s_humidity_layer, GColorWhite);
 	text_layer_set_text_alignment(s_humidity_layer, GTextAlignmentLeft);
     text_layer_set_font(s_humidity_layer, s_date_font);
+    text_layer_set_text_color(s_humidity_layer, humidity_color);
     layer_add_child(window_layer,text_layer_get_layer(s_humidity_layer));
     text_layer_set_overflow_mode(s_humidity_layer, GTextOverflowModeWordWrap);
     update_humidity();
@@ -955,17 +1049,18 @@ static void main_window_load(Window *window) {
     
     s_refreshed_time_layer = text_layer_create(GRect(0, 153, 50, 25));
     text_layer_set_background_color(s_refreshed_time_layer, GColorClear);
-	text_layer_set_text_color(s_refreshed_time_layer, GColorWhite);
+	text_layer_set_text_color(s_refreshed_time_layer, data_time_color);
 	text_layer_set_text_alignment(s_refreshed_time_layer, GTextAlignmentCenter);
     text_layer_set_overflow_mode(s_refreshed_time_layer, GTextOverflowModeWordWrap);
     text_layer_set_font(s_refreshed_time_layer, s_battery_font);
+    text_layer_set_text_color(s_refreshed_time_layer, data_time_color);
     text_layer_set_text(s_refreshed_time_layer, "Hello" );
     layer_add_child(window_layer,text_layer_get_layer(s_refreshed_time_layer));
     calculate_data_time_difference();
     
     s_battery_time_layer = text_layer_create(GRect(94, 153, 50, 25));
     text_layer_set_background_color(s_battery_time_layer, GColorClear);
-	text_layer_set_text_color(s_battery_time_layer, GColorWhite);
+	text_layer_set_text_color(s_battery_time_layer, battery_life_color);
 	text_layer_set_text_alignment(s_battery_time_layer, GTextAlignmentCenter);
     text_layer_set_overflow_mode(s_battery_time_layer, GTextOverflowModeWordWrap);
     text_layer_set_font(s_battery_time_layer, s_battery_font);
@@ -1075,7 +1170,10 @@ void prv_init(void) {
 }
 
 static void checkStorage(){
+    //todo Generlize this funciton.
     int numKeys = 0;
+    GColor batteryunchargedcolor;
+    GColor defaultColor;
     if(!persist_exists(KEY_TEMPERATURE)){
         for (int i = 0; i < TEMP_DATA_POINTS; i++){
             persist_write_int(KEY_TEMPERATURE + i, 0);
@@ -1134,6 +1232,61 @@ static void checkStorage(){
     if(!persist_exists(KEY_BATTERY_UNCHARGED)){
         GColor batteryunchargedcolor = GColorDarkCandyAppleRed;
         persist_write_data(KEY_BATTERY_UNCHARGED, &batteryunchargedcolor, sizeof(batteryunchargedcolor));
+        numKeys++;
+    } 
+    if(!persist_exists(KEY_TIME_COLOR)){
+        GColor timecolor = GColorWhite;
+        persist_write_data(KEY_TIME_COLOR, &timecolor, sizeof(timecolor));
+        numKeys++;
+    } 
+    if(!persist_exists(KEY_DATE_COLOR)){
+        batteryunchargedcolor = GColorWhite;
+        persist_write_data(KEY_DATE_COLOR, &batteryunchargedcolor, sizeof(batteryunchargedcolor));
+        numKeys++;
+    } 
+    if(!persist_exists(KEY_BATTERY_PERCENTAGE)){
+        defaultColor = GColorWhite;
+        persist_write_data(KEY_BATTERY_PERCENTAGE, &defaultColor, sizeof(defaultColor));
+        numKeys++;
+    } 
+    if(!persist_exists(KEY_TEMP_NUMBER_COLOR)){
+        defaultColor = GColorWhite;
+        persist_write_data(KEY_TEMP_NUMBER_COLOR, &defaultColor, sizeof(defaultColor));
+        numKeys++;
+    } 
+    if(!persist_exists(KEY_STEPS_COLOR)){
+        defaultColor = GColorWhite;
+        persist_write_data(KEY_STEPS_COLOR, &defaultColor, sizeof(defaultColor));
+        numKeys++;
+    } 
+    if(!persist_exists(KEY_DATA_TIME_COLOR)){
+        defaultColor = GColorWhite;
+        persist_write_data(KEY_DATA_TIME_COLOR, &defaultColor, sizeof(defaultColor));
+        numKeys++;
+    } 
+    if(!persist_exists(KEY_BATTERY_LIFE_COLOR)){
+        defaultColor = GColorWhite;
+        persist_write_data(KEY_BATTERY_LIFE_COLOR, &defaultColor, sizeof(defaultColor));
+        numKeys++;
+    } 
+    if(!persist_exists(KEY_WEATHER_COLOR)){
+        defaultColor = GColorWhite;
+        persist_write_data(KEY_WEATHER_COLOR, &defaultColor, sizeof(defaultColor));
+        numKeys++;
+    } 
+    if(!persist_exists(KEY_HUMIDITY_COLOR)){
+        defaultColor = GColorWhite;
+        persist_write_data(KEY_HUMIDITY_COLOR, &defaultColor, sizeof(defaultColor));
+        numKeys++;
+    } 
+    if(!persist_exists(KEY_GRAPH_LINE_COLOR)){
+        defaultColor = GColorWhite;
+        persist_write_data(KEY_GRAPH_LINE_COLOR, &defaultColor, sizeof(defaultColor));
+        numKeys++;
+    } 
+    if(!persist_exists(KEY_BATTERY_OUTLINE_COLOR)){
+        defaultColor = GColorWhite;
+        persist_write_data(KEY_BATTERY_OUTLINE_COLOR, &defaultColor, sizeof(defaultColor));
         numKeys++;
     } 
     printf("Generated %d defaults in storage", numKeys);
@@ -1196,7 +1349,6 @@ printf("App Message fail because of: %s", reasonStr);
 static void init() {
   // Create main Window element and assign to pointer
     checkStorage();
-    bg_color = GColorBlack;
     
 	s_main_window = window_create();
     prv_init();

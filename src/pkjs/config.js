@@ -7,6 +7,10 @@ module.exports = [
       "type": "text",
       "defaultValue": "Here is some introductory text."
   },
+    {
+      "type": "submit",
+      "defaultValue": "Save Settings"
+  },
   {
       "type": "section",
       "items": [
@@ -50,6 +54,19 @@ module.exports = [
             "defaultValue": "0xAA0000",
             "label": "Battery dead color"
         },
+        {
+            "type": "color",
+            "messageKey": "GraphLineColor",
+            "defaultValue": "0xAA0000",
+            "label": "Graph Marker Color"
+        },
+        {
+            "type": "color",
+            "messageKey": "BatteryOutlineColor",
+            "defaultValue": "0x555555",
+            "label": "Battery Outline Color"
+        },
+          
     ]
   },
   {
@@ -71,6 +88,69 @@ module.exports = [
             "label": "Battery Indicator Behind Clock",
             "defaultValue": false
         }
+    ]
+  },
+    {
+      "type": "section",
+      "items": [
+          {
+            "type": "heading",
+            "defaultValue": "Text Colors"
+        },
+        {
+            "type": "color",
+            "messageKey": "TimeColor",
+            "defaultValue": "0XFFFFFF",
+            "label": "Time Color"
+        },
+        {
+            "type": "color",
+            "messageKey": "DateColor",
+            "defaultValue": "0XFFFFFF",
+            "label": "Date Color"
+        },
+        {
+            "type": "color",
+            "messageKey": "BatteryPercentageColor",
+            "defaultValue": "0XFFFFFF",
+            "label": "Battery Percentage Color"
+        },
+        {
+            "type": "color",
+            "messageKey": "TempNumberColor",
+            "defaultValue": "0XFFFFFF",
+            "label": "Temp Number Color"
+        },
+        {
+            "type": "color",
+            "messageKey": "StepsColor",
+            "defaultValue": "0XFFFFFF",
+            "label": "Steps Color"
+        },
+        {
+            "type": "color",
+            "messageKey": "DataTimeColor",
+            "defaultValue": "0XFFFFFF",
+            "label": "Data Timer Color"
+        },
+          {
+            "type": "color",
+            "messageKey": "BatteryLifeColor",
+            "defaultValue": "0XFFFFFF",
+            "label": "Battery Life Color"
+        },
+           {
+            "type": "color",
+            "messageKey": "HumidityColor",
+            "defaultValue": "0XFFFFFF",
+            "label": "Humidity Color"
+        },
+           {
+            "type": "color",
+            "messageKey": "WeatherColor",
+            "defaultValue": "0XFFFFFF",
+            "label": "Weather Color"
+        },
     ]
   },
   {
