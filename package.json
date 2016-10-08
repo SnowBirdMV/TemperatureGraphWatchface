@@ -16,6 +16,7 @@
         "messageKeys": {
             "Animations": 1007,
             "BackgroundColor": 1004,
+            "BatteryBehindClockToggle": 1023,
             "BatteryChargeColor": 1008,
             "BatteryLifeColor": 1018,
             "BatteryOutlineColor": 1022,
@@ -28,7 +29,9 @@
             "GridColor": 1005,
             "HumidityColor": 1019,
             "JSReady": 10001,
-            "SecondTick": 1006,
+            "SecondTick": 1024,
+            "SecondsCount": 1025,
+            "SleepModeToggle": 1026,
             "StepsColor": 1016,
             "TempLineColor": 1009,
             "TempNumberColor": 1015,
@@ -297,7 +300,8 @@
         },
         "sdkVersion": "3",
         "targetPlatforms": [
-            "basalt"
+            "basalt",
+            "diorite"
         ],
         "uuid": "41c53f8f-16da-4ba3-bf3e-a90aa036497e",
         "watchapp": {

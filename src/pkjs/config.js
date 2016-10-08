@@ -3,10 +3,6 @@ module.exports = [
       "type": "heading",
       "defaultValue": "App Configuration"
   },
-  {
-      "type": "text",
-      "defaultValue": "Here is some introductory text."
-  },
     {
       "type": "submit",
       "defaultValue": "Save Settings"
@@ -80,13 +76,30 @@ module.exports = [
             "type": "toggle",
             "messageKey": "SecondTick",
             "label": "Enable Seconds",
-            "defaultValue": false
+            "defaultValue": true
+        },
+          {
+          "type": "slider",
+          "messageKey": "SecondsCount",
+          "defaultValue": 10,
+          "label": "Seconds Count",
+          "description": "How long to show the seconds counter after you shake the watch.",
+          "min": 1,
+          "max": 60,
+          "step": 1
         },
         {
             "type": "toggle",
-            "messageKey": "BatteryBehindClock",
+            "messageKey": "BatteryBehindClockToggle",
             "label": "Battery Indicator Behind Clock",
-            "defaultValue": false
+            "defaultValue": true
+        },
+        {
+            "type": "toggle",
+            "messageKey": "SleepModeToggle",
+            "label": "Enable Automatic Sleep Mode",
+            "description": "Sleep mode puts the watchface to sleep automatically while you are sleeping to conserve battery power.",
+            "defaultValue": true
         }
     ]
   },

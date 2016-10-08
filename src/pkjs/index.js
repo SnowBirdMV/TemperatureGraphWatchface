@@ -81,7 +81,7 @@ Pebble.addEventListener('ready',
         Pebble.sendAppMessage({'JSReady': 1});
 
 		// Get the initial weather
-		getWeather();
+		//getWeather();
 	}
 );
 
