@@ -28,15 +28,18 @@ function locationSuccess(pos) {
 		function(responseText) {
             var TEMP_DATA_POINTS = 20;
             var POP_DATA_POINTS = 20;
+            var WIND_DATA_POINTS = 20;
 			// responseText contains a JSON object with weather info
 			var json = JSON.parse(responseText);
 
 			var dictionary = {};
             var humidity = parseFloat(json.currently.humidity) * 100;
-            dictionary["humidity"] = humidity;
+            dictionary.humidity = humidity;
             console.log("Humidity is " + humidity * 100);
             var conditions = json.currently.summary;
-            dictionary["cond0"] = conditions;
+            dictionary.cond0 = conditions;
+            var curentWind = parseFloat(json.hourly.data[0].windSpeed);
+            dictionary.CurentWindData = curentWind;
             
 			for (var i = 0; i < TEMP_DATA_POINTS; i++){
 				var temperature = Math.round(json.hourly.data[i].temperature);
@@ -47,7 +50,11 @@ function locationSuccess(pos) {
 				var pop = parseFloat(json.hourly.data[j].precipProbability) * 100;
 				dictionary["pop" + j] = pop;
 			}
-            dictionary["inboxHandler"] = 1;
+            for (var k = 0; j < POP_DATA_POINTS; k++){
+				var wind = parseFloat(json.hourly.data[k].windSpeed);
+				dictionary["wind" + k] = wind;
+			}
+            dictionary.inboxHandler = 1;
             
 			// Send to Pebble
 			Pebble.sendAppMessage(dictionary,

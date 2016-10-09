@@ -23,6 +23,7 @@
             "BatteryPercentageColor": 1014,
             "BatteryTime": 1003,
             "BatteryUnchargedColor": 1011,
+            "CurentWindData": 1027,
             "DataTimeColor": 1017,
             "DateColor": 1013,
             "GraphLineColor": 1021,
