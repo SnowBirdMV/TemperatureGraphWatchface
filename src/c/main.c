@@ -37,7 +37,12 @@
 #define KEY_BATTERY_BEHIND_CLOCK_TOGGLE 1023
 #define KEY_SECONDS_TICK 1024
 #define KEY_SECONDS_COUNT 1025
-#define KEY_SLEEP_MODE_TOGGLE 1026
+#define KEY_SLEEP_MODE_TOGGLE 1032
+#define KEY_WIND_SPEED_CURENT 1033 
+#define KEY_CURENT_WIND_DIRECTION 1034 
+#define KEY_GRID_COLOR_CHANGE_TOGGLE 1031
+#define KEY_TRIPLE_SHAKE 1036
+#define KEY_CELCIUS_TOGGLE 1035
 
 #define TEMP_DATA_POINTS 20
 #define POP_DATA_POINTS 20
@@ -58,6 +63,7 @@ static TextLayer *s_sleep_layer;
 static TextLayer *s_humidity_layer;
 static TextLayer *s_bgcolor_layer;
 static TextLayer *s_seconds_layer;
+static TextLayer *s_wind_speed_layer;
 static Layer *s_graph_background;
 static Layer *s_grid_background;
 static Layer *s_battery_charge;
@@ -107,10 +113,14 @@ bool asleep = false;
 bool bat_behind_graph;
 bool show_seconds;
 bool sleep_mode_enabled;
+bool change_grid_color;
+bool triple_shake;
+bool celcius;
 
 int asleep_time = 0;
 int second_counter = 0;
 int num_seconds;
+int accelBuffer = 0;
 
 static char reasonStr[20];
 
@@ -147,6 +157,9 @@ static void storeOptions(){
 	persist_read_data(KEY_BATTERY_BEHIND_CLOCK_TOGGLE, &bat_behind_graph, sizeof(bat_behind_graph));
 	persist_read_data(KEY_SECONDS_TICK, &show_seconds, sizeof(show_seconds));
 	persist_read_data(KEY_SLEEP_MODE_TOGGLE, &sleep_mode_enabled, sizeof(sleep_mode_enabled));
+	persist_read_data(KEY_GRID_COLOR_CHANGE_TOGGLE, &change_grid_color, sizeof(change_grid_color));
+	persist_read_data(KEY_TRIPLE_SHAKE, &triple_shake, sizeof(triple_shake));
+	persist_read_data(KEY_CELCIUS_TOGGLE, &celcius, sizeof(celcius));
 
 	persist_read_data(KEY_SECONDS_COUNT, &num_seconds, sizeof(num_seconds));
 
@@ -157,15 +170,15 @@ void calculate_data_time_difference(){
 	unsigned long testLong;
 	persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
 	testLong = (unsigned long)storedTime;
-	printf("Time currently in storage (from loading main window) is : %lu", (unsigned long)testLong);
+	//printf("Time currently in storage (from loading main window) is : %lu", (unsigned long)testLong);
 	dataTime = testLong;
 	if (dataTime != 0){
-		printf("Inside update_proc");
+		//printf("Inside update_proc");
 		static char refreshTimeBuffer[70];
 		time_t curentTime = time(NULL);
 		unsigned long curentTimeLong = curentTime;
 		unsigned long timeDifference = curentTimeLong - dataTime;
-		printf("Time Difference is: %lu, Curent Time is: %lu, Stored time is: %lu", timeDifference, curentTimeLong, dataTime);
+		//printf("Time Difference is: %lu, Curent Time is: %lu, Stored time is: %lu", timeDifference, curentTimeLong, dataTime);
 		if (timeDifference < 61){
 			snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lus", timeDifference);
 		}
@@ -182,7 +195,7 @@ void calculate_data_time_difference(){
 		text_layer_set_text(s_refreshed_time_layer, refreshTimeBuffer );
 		printf("Time sence last data refresh is: %s", refreshTimeBuffer);
 		
-		printf("Exiting update_proc");
+		//printf("Exiting update_proc");
 	}
 	else{
 		text_layer_set_text(s_refreshed_time_layer, "Loading" );
@@ -194,15 +207,15 @@ void calculate_battery_time_difference(){
 	unsigned long testLong;
 	persist_read_data(KEY_BATTERY_TIME, &storedBatteryTime, sizeof(storedBatteryTime));
 	testLong = (unsigned long)storedBatteryTime;
-	printf("Time currently in storage (from loading main window) is : %lu", (unsigned long)testLong);
+	//printf("Time currently in storage (from loading main window) is : %lu", (unsigned long)testLong);
 	time_t batteryTime = testLong;
 	if ((unsigned long)storedBatteryTime != 0){
-		printf("Inside update_proc");
+		//printf("Inside update_proc");
 		static char refreshTimeBuffer[70];
 		time_t curentTime = time(NULL);
 		unsigned long curentTimeLong = curentTime;
 		unsigned long timeDifference = curentTimeLong - (unsigned long)storedBatteryTime;
-		printf("Time Difference is: %lu, Curent Time is: %lu, Stored time is: %lu", timeDifference, curentTimeLong, (unsigned long)storedBatteryTime);
+		//printf("Time Difference is: %lu, Curent Time is: %lu, Stored time is: %lu", timeDifference, curentTimeLong, (unsigned long)storedBatteryTime);
 		if (timeDifference < 61){
 			snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lus", timeDifference);
 		}
@@ -217,9 +230,9 @@ void calculate_battery_time_difference(){
 		}
 		
 		text_layer_set_text(s_battery_time_layer, refreshTimeBuffer );
-		printf("Time sence last data refresh is: %s", refreshTimeBuffer);
+		printf("Time sence last charge is: %s", refreshTimeBuffer);
 		
-		printf("Exiting update_proc");
+		//printf("Exiting update_proc");
 	}
 	else{
 		text_layer_set_text(s_refreshed_time_layer, "Loading" );
@@ -340,11 +353,16 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 	}
 	popPath = gpath_create(&popPathInfo);
 	gpath_draw_filled(ctx, popPath);
-	if (connection_service_peek_pebble_app_connection()){ 
+	if(change_grid_color){
+	if (connection_service_peek_pebble_app_connection()){
 		graphics_context_set_stroke_color(ctx, grid_color);
 	}
 	else{
 		graphics_context_set_stroke_color(ctx, GColorRed);
+	}
+	}
+	else{
+		graphics_context_set_stroke_color(ctx, grid_color);
 	}
 	graphics_draw_line(ctx, GPoint(0,0), GPoint(x2-1,0));
 	//graphics_draw_line(ctx, GPoint(x2-1,0), GPoint(x2-1,y2-1));
@@ -368,10 +386,10 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 		mean = mean + tempData[i];
 	}
 	mean = mean / 20;
-	printf("Min %d, Max %d, Mean %d", min, max, mean);
+	//printf("Min %d, Max %d, Mean %d", min, max, mean);
 	int scale = ((y2/2)/(max-min));
 	int offset = ((max - min + 2)/2) + (y2 / 2) - min;
-	printf("Scaling the graph by %d, offsetting by %d test %d", scale, offset, (y2/(1000*(max-min))));
+	//printf("Scaling the graph by %d, offsetting by %d test %d", scale, offset, (y2/(1000*(max-min))));
 	graphics_context_set_stroke_color(ctx, temp_color);
 	int points[21];
 	int diff1 = ((max - min) / 2) + min;
@@ -444,11 +462,16 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 }
 
 static void grid_update_proc(Layer *layer, GContext *ctx){
+	if(change_grid_color){
 	if (connection_service_peek_pebble_app_connection()){
 		graphics_context_set_stroke_color(ctx, grid_color);
 	}
 	else{
 		graphics_context_set_stroke_color(ctx, GColorRed);
+	}
+	}
+	else{
+		graphics_context_set_stroke_color(ctx, grid_color);
 	}
 	graphics_draw_line(ctx, GPoint(0,40), GPoint(168,40));
 	graphics_draw_line(ctx, GPoint(110,0), GPoint(110,40));
@@ -508,6 +531,18 @@ static void updateWeather(){
 	}
 }
 
+static void forceWeatherUpdate(){
+	DictionaryIterator *iter;
+		app_message_outbox_begin(&iter);
+
+			// Add a key-value pair
+		dict_write_uint8(iter, 0, 0);
+
+			// Send the message!
+		printf("Sent request for weather to phone.");
+		app_message_outbox_send();
+}
+
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 	size_t memoryUsage = heap_bytes_used();
 	size_t memoryFree = heap_bytes_free();
@@ -533,11 +568,16 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 			if (second_counter > 0){
 				second_counter--;
 			}
-			update_time();
+            size_t memoryUsageStart = heap_bytes_used();
+            size_t memoryUsageFun = heap_bytes_used();
+            size_t memoryUsageNow;
+			update_time();          
 			update_step_average();
 			calculate_data_time_difference();
 			calculate_battery_time_difference();
 			updateWeather();
+            size_t memoryUsageEnd = heap_bytes_used();
+            printf("used memory at the end: %d", memoryUsageEnd);
 		}
 
 	}
@@ -645,6 +685,16 @@ static void update_humidity(){
 }
 
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
+	if(triple_shake){
+	if (accelBuffer > 6){
+		printf("Forced a weather update");
+		forceWeatherUpdate();
+		accelBuffer = 0;
+	}
+	else{
+		accelBuffer = accelBuffer + 3;
+	}
+	}
 	if(show_seconds){
 		second_counter = num_seconds;
 	}
@@ -699,6 +749,65 @@ static void steps_above_update_proc(Layer *layer, GContext *ctx){
 static void steps_below_update_proc(Layer *layer, GContext *ctx){
 	graphics_context_set_compositing_mode(ctx, GCompOpSet);
 	graphics_draw_bitmap_in_rect(ctx, s_steps_below_image, gbitmap_get_bounds(s_steps_below_image));
+}
+static void updateWindSpeed(){
+    static char windDirectionString[5];
+    int windDirection = persist_read_int(KEY_CURENT_WIND_DIRECTION);
+    if (windDirection >= 348 || windDirection < 11){
+        snprintf(windDirectionString, sizeof(windDirectionString), "N");
+    }
+    else if (windDirection >= 11 || windDirection < 33){
+        snprintf(windDirectionString, sizeof(windDirectionString), "NNE");
+    }
+    else if (windDirection >= 33 || windDirection < 56){
+        snprintf(windDirectionString, sizeof(windDirectionString), "NE");
+    }
+    else if (windDirection >= 56 || windDirection < 78){
+        snprintf(windDirectionString, sizeof(windDirectionString), "ENE");
+    }
+    else if (windDirection >= 78 || windDirection < 101){
+        snprintf(windDirectionString, sizeof(windDirectionString), "E");
+    }
+    else if (windDirection >= 101 || windDirection < 123){
+        snprintf(windDirectionString, sizeof(windDirectionString), "ESE");
+    }
+    else if (windDirection >= 123 || windDirection < 146){
+        snprintf(windDirectionString, sizeof(windDirectionString), "SE");
+    }
+    else if (windDirection >= 146 || windDirection < 168){
+        snprintf(windDirectionString, sizeof(windDirectionString), "SSE");
+    }
+    else if (windDirection >= 168 || windDirection < 191){
+        snprintf(windDirectionString, sizeof(windDirectionString), "S");
+    }
+    else if (windDirection >= 191 || windDirection < 213){
+        snprintf(windDirectionString, sizeof(windDirectionString), "SSW");
+    }
+    else if (windDirection >= 213 || windDirection < 236){
+        snprintf(windDirectionString, sizeof(windDirectionString), "SW");
+    }
+    else if (windDirection >= 236 || windDirection < 258){
+        snprintf(windDirectionString, sizeof(windDirectionString), "WSW");
+    }
+    else if (windDirection >= 258 || windDirection < 281){
+        snprintf(windDirectionString, sizeof(windDirectionString), "W");
+    }
+    else if (windDirection >= 281 || windDirection < 303){
+        snprintf(windDirectionString, sizeof(windDirectionString), "WNW");
+    }
+    else if (windDirection >= 303 || windDirection < 326){
+        snprintf(windDirectionString, sizeof(windDirectionString), "NW");
+    }
+    else if (windDirection >= 326 || windDirection < 348){
+        snprintf(windDirectionString, sizeof(windDirectionString), "NNW");
+    }
+    
+    
+    int windData = persist_read_int(KEY_WIND_SPEED_CURENT);
+    static char wind_buffer[10];
+	snprintf(wind_buffer, sizeof(wind_buffer), "%s %d", windDirectionString, windData);
+	text_layer_set_text_color(s_wind_speed_layer, GColorWhite);
+	text_layer_set_text(s_wind_speed_layer, wind_buffer);
 }
 
 
@@ -886,7 +995,8 @@ static void main_window_load(Window *window) {
 	bitmap_layer_set_bitmap(s_steps_below_layer, s_steps_below_image);
 	layer_set_frame(bitmap_layer_get_layer(s_steps_below_layer), GRect(0, 111, 20, 20));
 	layer_add_child(window_layer,bitmap_layer_get_layer(s_steps_below_layer));
-	layer_set_update_proc(bitmap_layer_get_layer(s_steps_above_layer), steps_below_update_proc);
+	layer_set_update_proc(bitmap_layer_get_layer(s_steps_below_layer), steps_below_update_proc);
+	
 
 	update_step_average();
 
@@ -920,7 +1030,15 @@ static void main_window_load(Window *window) {
 	text_layer_set_text(s_battery_time_layer, "Hello" );
 	layer_add_child(window_layer,text_layer_get_layer(s_battery_time_layer));
 	calculate_battery_time_difference();
-
+    
+    s_wind_speed_layer = text_layer_create(GRect(0, 153, 144, 25));
+    text_layer_set_text_color(s_wind_speed_layer, GColorWhite);
+    text_layer_set_background_color(s_wind_speed_layer, GColorClear);
+	text_layer_set_text_alignment(s_wind_speed_layer, GTextAlignmentCenter);
+	text_layer_set_font(s_wind_speed_layer, s_battery_font);
+    layer_add_child(window_layer,text_layer_get_layer(s_wind_speed_layer));
+    updateWindSpeed();
+    
 
 	time_t storedTime;
 	unsigned long testLong;
@@ -1163,7 +1281,22 @@ static void checkStorage(){
 		defaultBool = true;
 		persist_write_data(KEY_SLEEP_MODE_TOGGLE, &defaultBool, sizeof(defaultBool));
 		numKeys++;
+	}
+	if(!persist_exists(KEY_GRID_COLOR_CHANGE_TOGGLE)){
+		defaultBool = true;
+		persist_write_data(KEY_GRID_COLOR_CHANGE_TOGGLE, &defaultBool, sizeof(defaultBool));
+		numKeys++;
 	} 
+	if(!persist_exists(KEY_TRIPLE_SHAKE)){
+		defaultBool = true;
+		persist_write_data(KEY_TRIPLE_SHAKE, &defaultBool, sizeof(defaultBool));
+		numKeys++;
+	}
+	if(!persist_exists(KEY_CELCIUS_TOGGLE)){
+		defaultBool = false;
+		persist_write_data(KEY_CELCIUS_TOGGLE, &defaultBool, sizeof(defaultBool));
+		numKeys++;
+	}
 	printf("Generated %d defaults in storage", numKeys);
 	storeOptions();
 }
@@ -1339,7 +1472,21 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 		bool sleep_mode_toggle = sleep_mode_toggle_t->value->int32 == 1;
 		persist_write_data(KEY_SLEEP_MODE_TOGGLE, &sleep_mode_toggle, sizeof(sleep_mode_toggle));
 	}
-
+	Tuple *grid_color_toggle_t = dict_find(iter, KEY_GRID_COLOR_CHANGE_TOGGLE);
+	if(grid_color_toggle_t) {
+		bool grid_color_toggle = grid_color_toggle_t->value->int32 == 1;
+		persist_write_data(KEY_GRID_COLOR_CHANGE_TOGGLE, &grid_color_toggle, sizeof(grid_color_toggle));
+	}
+	Tuple *triple_shake_set_t = dict_find(iter, KEY_TRIPLE_SHAKE);
+	if(triple_shake_set_t) {
+		bool triple_shake_set = triple_shake_set_t->value->int32 == 1;
+		persist_write_data(KEY_TRIPLE_SHAKE, &triple_shake_set, sizeof(triple_shake_set));
+	}
+	Tuple *celcius_set_t = dict_find(iter, KEY_CELCIUS_TOGGLE);
+	if(celcius_set_t) {
+		bool celcius_set = celcius_set_t->value->int32 == 1;
+		persist_write_data(KEY_CELCIUS_TOGGLE, &celcius_set, sizeof(celcius_set));
+	}
         //read slider preferences
 	Tuple *seconds_count_t = dict_find(iter, KEY_SECONDS_COUNT);
 	if(seconds_count_t) {
@@ -1375,7 +1522,18 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 	}
 	else{
 		printf("Recieved Weather Data");
-		printf("%s", "Starting to Parse Weather Data");
+		printf("Starting to Parse Weather Data");
+        
+        Tuple *wind_direction_t = dict_find(iterator, KEY_CURENT_WIND_DIRECTION);
+        printf("hi1");
+		int windDirection = wind_direction_t->value->int32;
+		printf("WInd direction in C is: %d", windDirection);
+		persist_write_int(KEY_CURENT_WIND_DIRECTION, windDirection);
+        printf("Parsing wind direction");
+		Tuple *wind_speed_t = dict_find(iterator, KEY_WIND_SPEED_CURENT);
+		persist_write_int(KEY_WIND_SPEED_CURENT, wind_speed_t->value->int32);
+		updateWindSpeed();
+
 	//persist_write_int(103, time(NULL));
 		time_t curentTime = time(NULL);
 		printf("Storing Recieved Time: %" SCNd32 "\n", time(NULL));
@@ -1415,8 +1573,13 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 			pops[i] = dict_find(iterator, i + KEY_POPDATA);
 		}
 		conds[0] = dict_find(iterator, KEY_WEATHER_STRING);
-
-		snprintf(temperature_buffer, sizeof(temperature_buffer), "%dF", (int)temps[0]->value->int32);
+		printf("Celcius is: %s", celcius ? "true" : "false");
+		if(celcius){
+			snprintf(temperature_buffer, sizeof(temperature_buffer), "%dC", (int)temps[0]->value->int32);
+		}
+		else{
+			snprintf(temperature_buffer, sizeof(temperature_buffer), "%dF", (int)temps[0]->value->int32);
+		}
 		for (int i = 0; i < TEMP_DATA_POINTS; i++){
 			tempInts[i] = (int)temps[i]->value->int32;
 			tempData[i] = tempInts[i];
@@ -1435,7 +1598,12 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 
 		static char tempDisplayBuffer[8];
 		static char condDisplayBuffer[32];
-		snprintf(tempDisplayBuffer, sizeof(tempDisplayBuffer), "%dF", (int)temps[0]->value->int32);
+		if(celcius){
+			snprintf(tempDisplayBuffer, sizeof(tempDisplayBuffer), "%dC", (int)temps[0]->value->int32);
+		}
+		else{
+			snprintf(tempDisplayBuffer, sizeof(tempDisplayBuffer), "%dF", (int)temps[0]->value->int32);
+		}
 		snprintf(condDisplayBuffer, sizeof(condDisplayBuffer), "%s", conds[0]->value->cstring);
 		snprintf(weather_layer_buffer, sizeof(weather_layer_buffer), "%s, %s", tempDisplayBuffer, condDisplayBuffer);
 		text_layer_set_text_color(s_weather_layer, weather_color);
