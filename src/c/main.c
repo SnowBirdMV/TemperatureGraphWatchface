@@ -544,6 +544,9 @@ static void forceWeatherUpdate(){
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+	if (accelBuffer > 0){
+		accelBuffer--;
+	}
 	size_t memoryUsage = heap_bytes_used();
 	size_t memoryFree = heap_bytes_free();
 	printf("Memory currently used is: %zu/%zu", memoryUsage, memoryFree + memoryUsage);
