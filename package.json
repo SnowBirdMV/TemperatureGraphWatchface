@@ -23,6 +23,8 @@
             "BatteryPercentageColor": 1014,
             "BatteryTime": 1003,
             "BatteryUnchargedColor": 1011,
+            "BottemLeft": 1037,
+            "BottemRight": 1038,
             "CelciusToggle": 1035,
             "CurentWindData": 1033,
             "CurentWindDirection": 1034,
@@ -257,13 +259,6 @@
         "resources": {
             "media": [
                 {
-                    "file": "images/Lightningbolt",
-                    "memoryFormat": "1Bit",
-                    "name": "LIGHTNINGBOLT",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
                     "file": "images/bluetooth_off",
                     "name": "BLUETOOTH_OFF",
                     "targetPlatforms": null,
@@ -282,6 +277,13 @@
                     "type": "bitmap"
                 },
                 {
+                    "file": "images/Lightningbolt",
+                    "memoryFormat": "1Bit",
+                    "name": "LIGHTNINGBOLT",
+                    "targetPlatforms": null,
+                    "type": "bitmap"
+                },
+                {
                     "file": "images/Bluetooth_on",
                     "name": "BLUETOOTH_ON",
                     "targetPlatforms": null,
@@ -290,13 +292,13 @@
                 {
                     "compatibility": "2.7",
                     "file": "fonts/perfect-dos-vga.ttf",
-                    "name": "FONT_PERFECT_DOS_20",
+                    "name": "FONT_PERFECT_DOS_48",
                     "type": "font"
                 },
                 {
                     "compatibility": "2.7",
                     "file": "fonts/perfect-dos-vga.ttf",
-                    "name": "FONT_PERFECT_DOS_48",
+                    "name": "FONT_PERFECT_DOS_20",
                     "type": "font"
                 },
                 {

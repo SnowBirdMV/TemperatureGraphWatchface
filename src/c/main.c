@@ -41,8 +41,10 @@
 #define KEY_WIND_SPEED_CURENT 1033 
 #define KEY_CURENT_WIND_DIRECTION 1034 
 #define KEY_GRID_COLOR_CHANGE_TOGGLE 1031
-#define KEY_TRIPLE_SHAKE 1036
 #define KEY_CELCIUS_TOGGLE 1035
+#define KEY_TRIPLE_SHAKE 1036
+#define KEY_BOTTEM_LEFT 1037
+#define KEY_BOTTEM_RIGHT 1038
 
 #define TEMP_DATA_POINTS 20
 #define POP_DATA_POINTS 20
@@ -56,7 +58,7 @@ static TextLayer *s_weather_layer;
 static TextLayer *s_battery_charge_layer;
 static TextLayer *s_date_layer;
 static TextLayer *s_steps_layer;
-static TextLayer *s_refreshed_time_layer;
+static TextLayer *s_bottem_left_layer;
 static TextLayer *s_data_refreshed_time_layer;
 static TextLayer *s_battery_time_layer;
 static TextLayer *s_sleep_layer;
@@ -123,6 +125,8 @@ int num_seconds;
 int accelBuffer = 0;
 
 static char reasonStr[20];
+static char bottemLeft[30];
+static char bottemRight[30];
 
 int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -136,6 +140,7 @@ bool comm_is_js_ready() {
 }
 
 static void storeOptions(){
+	//colors
 	persist_read_data(KEY_BACKGROUNDCOLOR, &bg_color, sizeof(bg_color));
 	persist_read_data(KEY_GRID_COLOR, &grid_color, sizeof(grid_color));
 	persist_read_data(KEY_BATTERY_COLOR, &battery_color, sizeof(battery_color));
@@ -154,13 +159,19 @@ static void storeOptions(){
 	persist_read_data(KEY_GRAPH_LINE_COLOR, &graph_line_color, sizeof(graph_line_color));
 	persist_read_data(KEY_BATTERY_OUTLINE_COLOR, &battery_outline_color, sizeof(battery_outline_color));
 	
+	//booleans
 	persist_read_data(KEY_BATTERY_BEHIND_CLOCK_TOGGLE, &bat_behind_graph, sizeof(bat_behind_graph));
 	persist_read_data(KEY_SECONDS_TICK, &show_seconds, sizeof(show_seconds));
 	persist_read_data(KEY_SLEEP_MODE_TOGGLE, &sleep_mode_enabled, sizeof(sleep_mode_enabled));
 	persist_read_data(KEY_GRID_COLOR_CHANGE_TOGGLE, &change_grid_color, sizeof(change_grid_color));
 	persist_read_data(KEY_TRIPLE_SHAKE, &triple_shake, sizeof(triple_shake));
 	persist_read_data(KEY_CELCIUS_TOGGLE, &celcius, sizeof(celcius));
-
+	
+	//strings
+	persist_read_data(KEY_BOTTEM_LEFT, &bottemLeft, sizeof(bottemLeft));
+	persist_read_data(KEY_BOTTEM_RIGHT, &bottemRight, sizeof(bottemRight));
+	
+	//integers
 	persist_read_data(KEY_SECONDS_COUNT, &num_seconds, sizeof(num_seconds));
 
 }
@@ -191,14 +202,14 @@ void calculate_data_time_difference(){
 		else{
 			snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lud %luh", timeDifference / 86400, timeDifference / 3600 % 24);
 		}
-		text_layer_set_text_color(s_refreshed_time_layer, data_time_color);
-		text_layer_set_text(s_refreshed_time_layer, refreshTimeBuffer );
+		text_layer_set_text_color(s_bottem_left_layer, data_time_color);
+		text_layer_set_text(s_bottem_left_layer, refreshTimeBuffer );
 		printf("Time sence last data refresh is: %s", refreshTimeBuffer);
 		
 		//printf("Exiting update_proc");
 	}
 	else{
-		text_layer_set_text(s_refreshed_time_layer, "Loading" );
+		text_layer_set_text(s_bottem_left_layer, "Loading" );
 	}
 }
 
@@ -235,7 +246,7 @@ void calculate_battery_time_difference(){
 		//printf("Exiting update_proc");
 	}
 	else{
-		text_layer_set_text(s_refreshed_time_layer, "Loading" );
+		text_layer_set_text(s_bottem_left_layer, "Loading" );
 	}
 }
 
@@ -814,6 +825,18 @@ static void updateWindSpeed(){
 }
 
 
+static void weather_update_time_update_proc(Layer *layer, GContext *ctx){
+
+}
+static void calories_burned_update_proc(Layer *layer, GContext *ctx){
+
+}
+static void time_slept_update_proc(Layer *layer, GContext *ctx){
+
+}
+static void battery_charge_time_update_proc(Layer *layer, GContext *ctx){
+
+}
 
 static void main_window_load(Window *window) {
   // Get information about the Window
@@ -1013,16 +1036,36 @@ static void main_window_load(Window *window) {
 	update_humidity();
 
 
-	s_refreshed_time_layer = text_layer_create(GRect(0, 153, 50, 25));
-	text_layer_set_background_color(s_refreshed_time_layer, GColorClear);
-	text_layer_set_text_color(s_refreshed_time_layer, data_time_color);
-	text_layer_set_text_alignment(s_refreshed_time_layer, GTextAlignmentCenter);
-	text_layer_set_overflow_mode(s_refreshed_time_layer, GTextOverflowModeWordWrap);
-	text_layer_set_font(s_refreshed_time_layer, s_battery_font);
-	text_layer_set_text_color(s_refreshed_time_layer, data_time_color);
-	text_layer_set_text(s_refreshed_time_layer, "Hello" );
-	layer_add_child(window_layer,text_layer_get_layer(s_refreshed_time_layer));
+	s_bottem_left_layer = text_layer_create(GRect(0, 153, 50, 25));
+	text_layer_set_background_color(s_bottem_left_layer, GColorClear);
+	text_layer_set_text_color(s_bottem_left_layer, data_time_color);
+	text_layer_set_text_alignment(s_bottem_left_layer, GTextAlignmentCenter);
+	text_layer_set_overflow_mode(s_bottem_left_layer, GTextOverflowModeWordWrap);
+	text_layer_set_font(s_bottem_left_layer, s_battery_font);
+	text_layer_set_text_color(s_bottem_left_layer, data_time_color);
+	text_layer_set_text(s_bottem_left_layer, "Hello" );
+	layer_add_child(window_layer,text_layer_get_layer(s_bottem_left_layer));
 	calculate_data_time_difference();
+	if (bottemLeft == "WeatherUpdateTime"){
+		printf("Update_proc setting to: WeatherUpdateTime");
+		layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), weather_update_time_update_proc);
+	}
+	else if (bottemLeft == "CaloriesBurned"){
+		printf("Update_proc setting to: CaloriesBurned");
+		layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), calories_burned_update_proc);
+	}
+	else if (bottemLeft == "TimeSlept"){
+		printf("Update_proc setting to: TimeSlept");
+		layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), time_slept_update_proc);
+	}
+	else if (bottemLeft == "BatteryChargeTime"){
+		printf("Update_proc setting to: BatteryChargeTime");
+		layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), battery_charge_time_update_proc);
+	}
+	else{
+		printf("Invalid bottem left Identifier");
+	}
+
 
 	s_battery_time_layer = text_layer_create(GRect(94, 153, 50, 25));
 	text_layer_set_background_color(s_battery_time_layer, GColorClear);
@@ -1032,6 +1075,7 @@ static void main_window_load(Window *window) {
 	text_layer_set_font(s_battery_time_layer, s_battery_font);
 	text_layer_set_text(s_battery_time_layer, "Hello" );
 	layer_add_child(window_layer,text_layer_get_layer(s_battery_time_layer));
+
 	calculate_battery_time_difference();
     
     s_wind_speed_layer = text_layer_create(GRect(0, 153, 144, 25));
@@ -1300,6 +1344,19 @@ static void checkStorage(){
 		persist_write_data(KEY_CELCIUS_TOGGLE, &defaultBool, sizeof(defaultBool));
 		numKeys++;
 	}
+	
+	//Strings
+	if(!persist_exists(KEY_BOTTEM_LEFT)){
+		char bottem_left[100] = "WeatherUpdateTime";
+		persist_write_data(KEY_BOTTEM_LEFT, &bottem_left, sizeof(bottem_left));
+		numKeys++;
+	}
+	if(!persist_exists(KEY_BOTTEM_RIGHT)){
+		char bottem_right[100] = "BatteryChargeTime";
+		persist_write_data(KEY_BOTTEM_RIGHT, &bottem_right, sizeof(bottem_right));
+		numKeys++;
+	}
+	
 	printf("Generated %d defaults in storage", numKeys);
 	storeOptions();
 }
@@ -1496,7 +1553,20 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 		num_seconds = seconds_count_t->value->int32;
 		persist_write_data(KEY_SECONDS_COUNT, &num_seconds, sizeof(num_seconds));
 	}
-
+	
+	//read string preferences
+	Tuple *bottem_left_t = dict_find(iter, KEY_BOTTEM_LEFT);
+	if(bottem_left_t) {
+		char *bottem_left = bottem_left_t->value->cstring;
+		printf("Got string: %s", bottem_left);
+		persist_write_data(KEY_BOTTEM_LEFT, bottem_left, sizeof(*bottem_left));
+	}
+	Tuple *bottem_right_t = dict_find(iter, KEY_BOTTEM_RIGHT);
+	if(bottem_right_t) {
+		char *bottem_right = bottem_right_t->value->cstring;
+		printf("Got string: %s", bottem_right);
+		persist_write_data(KEY_BOTTEM_RIGHT, bottem_right, sizeof(*bottem_right));
+	}
 
 
 	Tuple *animations_t = dict_find(iter, KEY_ANIMATIONS);

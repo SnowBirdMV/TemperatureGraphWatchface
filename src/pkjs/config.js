@@ -14,23 +14,23 @@ module.exports = [
 		"type": "heading",
 		"defaultValue": "API Settings"
 	},
-    {
-  "type": "select",
-  "messageKey": "WeatherProvider",
-  "defaultValue": "Dark Sky",
-  "label": "Weather Provider",
+	{
+		"type": "select",
+		"messageKey": "WeatherProvider",
+		"defaultValue": "Dark Sky",
+		"label": "Weather Provider",
 		"description": "Choose your favorite weather povider.  NOTE: you will have to provide your own API key for services other than Dark Sky.",
-  "options": [
-    { 
-      "label": "Weather Underground", 
-      "value": "WeatherUnderground" 
-    },
-    { 
-      "label": "Dark Sky",
-      "value": "DarkSky" 
-    }
-  ]
-},
+		"options": [
+		{ 
+			"label": "Weather Underground", 
+			"value": "WeatherUnderground" 
+		},
+		{ 
+			"label": "Dark Sky",
+			"value": "DarkSky" 
+		}
+		]
+	},
 	{
 		"type": "input",
 		"messageKey": "ManualDarkSkyAPIKey",
@@ -46,7 +46,7 @@ module.exports = [
 		"messageKey": "ManualWUndergroundAPIKey ",
 		"defaultValue": "",
 		"label": "Weather Underground API Key",
-        "description": "",
+		"description": "",
 		"attributes": {
 			"placeholder": "eg: 12ae7f328bf212248e",
 			"limit": 10,
@@ -60,10 +60,10 @@ module.exports = [
 	{
 		"type": "heading",
 		"defaultValue": "MasterKey Settings",
-		},
+	},
 	{
-  		"type": "text",
-  		"defaultValue" : "MasterKey is an alternate method to use your own API keys with Pebble watchfaces.  You can create an account here.  NOTE: This is completly optional.  If you have API keys defined manually above, those will be used instead."
+		"type": "text",
+		"defaultValue" : "MasterKey is an alternate method to use your own API keys with Pebble watchfaces.  You can create an account here.  NOTE: This is completly optional.  If you have API keys defined manually above, those will be used instead."
 	},
 	{
 		"type": "input",
@@ -86,6 +86,63 @@ module.exports = [
 			"limit": 10,
 			"type": "number"
 		}
+	}
+	]
+},
+{
+	"type": "section",
+	"items": [
+	{
+		"type": "heading",
+		"defaultValue": "Grid Settings"
+	},
+	{
+		"type": "select",
+		"messageKey": "BottemLeft",
+		"defaultValue": "Time since last wetather update",
+		"label": "Bottem Left",
+		"options": [
+		{ 
+			"label": "Time since last wetather update", 
+			"value": "WeatherUpdateTime" 
+		},
+		{ 
+			"label": "Calories Burned",
+			"value": "CaloriesBurned" 
+		},
+		{ 
+			"label": "Time Slept",
+			"value": "TimeSlept" 
+		},
+		{ 
+			"label": "Time Since Last Battery Charge",
+			"value": "BatteryChargeTime" 
+		}
+		]
+	},
+	{
+		"type": "select",
+		"messageKey": "BottemRight",
+		"defaultValue": "Time Since Last Battery Charge",
+		"label": "Bottem Right",
+		"options": [
+		{ 
+			"label": "Time since last wetather update", 
+			"value": "WeatherUpdateTime" 
+		},
+		{ 
+			"label": "Calories Burned",
+			"value": "CaloriesBurned" 
+		},
+		{ 
+			"label": "Time Slept",
+			"value": "TimeSlept" 
+		},
+		{ 
+			"label": "Time Since Last Battery Charge",
+			"value": "BatteryChargeTime" 
+		}
+		]
 	}
 	]
 },
