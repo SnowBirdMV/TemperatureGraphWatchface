@@ -179,7 +179,67 @@ module.exports = [
 			"value": "WindSpeed" 
 		}
 		]
-	}
+	},
+	{
+		"type": "select",
+		"messageKey": "DateConfig",
+		"defaultValue": "DD MM YY",
+		"label": "Date Configuration",
+		"options": [
+		{ 
+			"label": "DD MM YY", 
+			"value": "DMY" 
+		},
+		{ 
+			"label": "MM DD YY",
+			"value": "MDY" 
+		},
+		{ 
+			"label": "YY MM DD",
+			"value": "YMD" 
+		}
+		]
+	},
+	{
+		"type": "select",
+		"messageKey": "DateSeporator",
+		"defaultValue": "Date Seporator",
+		"description" : "This character will go between the date, month and year values.  EG: DD/MM/YY is the result of choosing '/'",
+		"label": "Date Configuration",
+		"options": [
+		{ 
+			"label": "/", 
+			"value": "/" 
+		},
+		{ 
+			"label": "\\", 
+			"value": "\\" 
+		},
+		{ 
+			"label": "-",
+			"value": "-" 
+		},
+		{ 
+			"label": ".",
+			"value": "." 
+		},
+		{ 
+			"label": "(space)",
+			"value": " " 
+		},
+		{ 
+			"label": "(nothing)",
+			"value": "" 
+		}
+		]
+	},
+	{
+		"type": "toggle",
+		"messageKey": "FourDigitYear",
+		"label": "Four Digit Year",
+		"description" : "Display a 4 digit year instead of a 2 digit year.  EG: '2016' instead of '16'.",
+		"defaultValue": false
+	},
 	]
 },
 {

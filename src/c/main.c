@@ -48,6 +48,9 @@
 #define KEY_BOTTEM_MIDDLE 1039
 #define KEY_STEPS_ABOVE_COLOR 1040
 #define KEY_STEPS_BELOW_COLOR 1041
+#define KEY_DATE_CONFIG 1042
+#define KEY_DATE_SEPORATOR 1043
+#define KEY_FOUR_DIGIT_YEAR_TOGGLE 1044
 
 #define TEMP_DATA_POINTS 20
 #define POP_DATA_POINTS 20
@@ -127,6 +130,7 @@ bool change_grid_color;
 bool triple_shake;
 bool celcius;
 bool above_average = true;
+bool four_digit_year;
 
 int asleep_time = 0;
 int second_counter = 0;
@@ -139,6 +143,8 @@ static char bottemRight[30];
 static char bottemMiddle[30];
 static char calorie_count_str[10];
 static char sleep_time_string[15];
+static char date_config[10];
+static char date_seporator[10];
 static GTextAttributes *temp_text_attributes;
 
 
@@ -204,6 +210,7 @@ static void storeOptions(){
 	persist_read_data(KEY_STEPS_ABOVE_COLOR, &steps_above_color, sizeof(steps_above_color));
 	persist_read_data(KEY_STEPS_BELOW_COLOR, &steps_below_color, sizeof(steps_below_color));
 	
+	
 	//booleans
 	persist_read_data(KEY_BATTERY_BEHIND_CLOCK_TOGGLE, &bat_behind_graph, sizeof(bat_behind_graph));
 	persist_read_data(KEY_SECONDS_TICK, &show_seconds, sizeof(show_seconds));
@@ -211,11 +218,15 @@ static void storeOptions(){
 	persist_read_data(KEY_GRID_COLOR_CHANGE_TOGGLE, &change_grid_color, sizeof(change_grid_color));
 	persist_read_data(KEY_TRIPLE_SHAKE, &triple_shake, sizeof(triple_shake));
 	persist_read_data(KEY_CELCIUS_TOGGLE, &celcius, sizeof(celcius));
+	persist_read_data(KEY_FOUR_DIGIT_YEAR_TOGGLE, &four_digit_year, sizeof(four_digit_year));
+
 	
 	//strings
 	persist_read_string(KEY_BOTTEM_LEFT, bottemLeft, sizeof(bottemLeft));
 	persist_read_string(KEY_BOTTEM_RIGHT, bottemRight, sizeof(bottemRight));
 	persist_read_string(KEY_BOTTEM_MIDDLE, bottemMiddle, sizeof(bottemMiddle));
+	persist_read_string(KEY_DATE_CONFIG, date_config, sizeof(bottemMiddle));
+	persist_read_string(KEY_DATE_SEPORATOR, date_seporator, sizeof(bottemMiddle));
 	
 	//integers
 	persist_read_data(KEY_SECONDS_COUNT, &num_seconds, sizeof(num_seconds));
@@ -359,6 +370,7 @@ static void update_calorie_count(){
 	int totalCalories = resting + active;
 	snprintf(calorie_count_str, sizeof(calorie_count_str), "%d", totalCalories);
 	printf("Total calories is: %d", totalCalories);
+	printf("Active calories: %d, Passive callories: %d", (int)active, (int)resting);
 	
 }
 
@@ -659,6 +671,135 @@ static void s_battery_behind_clock_update_proc(Layer *layer, GContext *ctx){
 	graphics_context_set_fill_color(ctx, uncharged_color);
 	graphics_fill_rect(ctx, GRect(state.charge_percent*1.1, 0, 110-state.charge_percent*1.1, 40), 0, GCornerNone);
 }
+
+
+static char* getDate(){
+	time_t rawtime;
+	struct tm *info;
+	static char date_buffer[80];
+	time( &rawtime );
+	info = localtime( &rawtime );
+	strftime(date_buffer,80,"%a, %d/%m/%y", info);
+	
+	//text_layer_set_text(s_date_layer, getDate() );
+	static char finalDate[20];
+	static char dayArr[5];
+	static char monthArr[5];
+	static char yearArr[7];
+	static char dateArr[10];
+	static char seporator;
+	static int dateDateSeporator = 44;
+	strftime(dayArr, 5, "%d", info);
+	strftime(monthArr, 5, "%m", info);
+	if (four_digit_year){
+		strftime(yearArr, 5, "%Y", info);
+	}
+	else{
+		strftime(yearArr, 5, "%y", info);
+	}
+	if (strcmp(date_seporator, "/") == 0){
+		seporator = '/';
+	}
+	else if (strcmp(date_seporator, "\\") == 0){
+		seporator = '\\';
+	}
+	else if (strcmp(date_seporator, "-") == 0){
+		seporator = '-';
+	}
+	else if (strcmp(date_seporator, ".") == 0){
+		seporator = '.';
+	}
+	else if (strcmp(date_seporator, " ") == 0){
+		seporator = ' ';
+	}
+	strftime(dateArr, 10, "%a", info);
+	
+	static char* day = dayArr;
+	static char* month = monthArr;
+	static char* year = yearArr;
+	static char* date = dateArr;
+	
+	
+	if (strcmp(date_config, "DMY") == 0){
+		snprintf(finalDate, sizeof(finalDate), "%s%c %s%c%s%c%s", date, dateDateSeporator, dayArr, seporator, monthArr, seporator, yearArr);
+	}
+	else if (strcmp(date_config, "MDY") == 0){
+		snprintf(finalDate, sizeof(finalDate), "%s%c %s%c%s%c%s", date, dateDateSeporator, month, seporator, day, seporator, year);
+	}
+	else if (strcmp(date_config, "YMD") == 0){
+		snprintf(finalDate, sizeof(finalDate), "%s%c %s%c%s%c%s", date, dateDateSeporator, year, seporator, month, seporator, day);
+	}
+	return finalDate;
+	
+	
+	printf("Date_config is: %s, Date Seporator is: %s", date_config, date_seporator);
+	
+	if (strcmp(date_config, "DMY") == 0 && strcmp(date_seporator, "/") == 0){
+		strftime(date_buffer,80,"%a, %d/%m/%y", info);
+	}
+	else if (strcmp(date_config, "DMY") == 0 && strcmp(date_seporator, "\\") == 0){
+		strftime(date_buffer,80,"%a, %d\\%m\\%y", info);
+	}
+	else if (strcmp(date_config, "DMY") == 0 && strcmp(date_seporator, "-") == 0){
+		strftime(date_buffer,80,"%a, %d-%m-%y", info);
+	}
+	else if (strcmp(date_config, "DMY") == 0 && strcmp(date_seporator, ".") == 0){
+		strftime(date_buffer,80,"%a, %d.%m.%y", info);
+	}
+	else if (strcmp(date_config, "DMY") == 0 && strcmp(date_seporator, " ") == 0){
+		strftime(date_buffer,80,"%a, %d %m %y", info);
+	}
+	else if (strcmp(date_config, "DMY") == 0 && strcmp(date_seporator, "") == 0){
+		strftime(date_buffer,80,"%a, %d%m%y", info);
+	}
+	else if (strcmp(date_config, "MDY") == 0 && strcmp(date_seporator, "/") == 0){
+		strftime(date_buffer,80,"%a, %m/%d/%y", info);
+	}
+	else if (strcmp(date_config, "MDY") == 0 && strcmp(date_seporator, "\\") == 0){
+		strftime(date_buffer,80,"%a, %m\\%d\\%y", info);
+	}
+	else if (strcmp(date_config, "MDY") == 0 && strcmp(date_seporator, "-") == 0){
+		strftime(date_buffer,80,"%a, %m-%d-%y", info);
+	}
+	else if (strcmp(date_config, "MDY") == 0 && strcmp(date_seporator, ".") == 0){
+		strftime(date_buffer,80,"%a, %m.%d.%y", info);
+	}
+	else if (strcmp(date_config, "MDY") == 0 && strcmp(date_seporator, " ") == 0){
+		strftime(date_buffer,80,"%a, %m %d %y", info);
+	}
+	else if (strcmp(date_config, "MDY") == 0 && strcmp(date_seporator, "") == 0){
+		strftime(date_buffer,80,"%a, %m%d%y", info);
+	}
+	else if (strcmp(date_config, "YMD") == 0 && strcmp(date_seporator, "/") == 0){
+		strftime(date_buffer,80,"%a, %y/%m/%d", info);
+	}
+	else if (strcmp(date_config, "YMD") == 0 && strcmp(date_seporator, "\\") == 0){
+		strftime(date_buffer,80,"%a, %y\\%m\\%d", info);
+	}
+	else if (strcmp(date_config, "YMD") == 0 && strcmp(date_seporator, "-") == 0){
+		strftime(date_buffer,80,"%a, %y-%m-%d", info);
+	}
+	else if (strcmp(date_config, "YMD") == 0 && strcmp(date_seporator, ".") == 0){
+		strftime(date_buffer,80,"%a, %y.%m.%d", info);
+	}
+	else if (strcmp(date_config, "YMD") == 0 && strcmp(date_seporator, " ") == 0){
+		strftime(date_buffer,80,"%a, %y %m %d", info);
+	}
+	else if (strcmp(date_config, "YMD") == 0 && strcmp(date_seporator, "") == 0){
+		strftime(date_buffer,80,"%a, %y%m%d", info);
+	}
+	else{
+		printf("Invalid config/seporator.  They are: %s, %s", date_config, date_seporator);
+	}
+	
+	printf("Formatted date & time : |%s|\n", date_buffer );
+	
+	
+	
+	
+	return date_buffer;
+}
+
 static void s_date_layer_update_proc(Layer *layer, GContext *ctx){
 	time_t rawtime;
 	struct tm *info;
@@ -667,7 +808,7 @@ static void s_date_layer_update_proc(Layer *layer, GContext *ctx){
 	info = localtime( &rawtime );
 	strftime(date_buffer,80,"%a, %d/%m/%y", info);
 	printf("Formatted date & time : |%s|\n", date_buffer );
-	text_layer_set_text(s_date_layer, date_buffer );
+	text_layer_set_text(s_date_layer, getDate() );
 }
 
 static void kit_connection_handler(bool connected) {
@@ -1183,15 +1324,8 @@ static void main_window_load(Window *window) {
 	snprintf(stepBuffer, sizeof(stepBuffer), "%d", (int)health_service_sum_today(HealthMetricStepCount));
 	text_layer_set_text(s_steps_layer, stepBuffer);
 	layer_add_child(window_layer,text_layer_get_layer(s_steps_layer));
-
-	time_t rawtime;
-	struct tm *info;
-	char date_buffer[80];
-	time( &rawtime );
-	info = localtime( &rawtime );
-	strftime(date_buffer,80,"%a, %d/%m/%y", info);
-	printf("Formatted date & time : |%s|\n", date_buffer );
-	text_layer_set_text(s_date_layer, date_buffer );
+	
+	text_layer_set_text(s_date_layer, getDate() );
 
 	s_steps_above_image = gbitmap_create_with_resource(RESOURCE_ID_STEPS_ABOVE);
 	s_steps_above_layer = bitmap_layer_create(bounds);
@@ -1536,6 +1670,13 @@ static void checkStorage(){
 		persist_write_data(KEY_CELCIUS_TOGGLE, &defaultBool, sizeof(defaultBool));
 		numKeys++;
 	}
+	if(!persist_exists(KEY_FOUR_DIGIT_YEAR_TOGGLE)){
+		defaultBool = false;
+		persist_write_data(KEY_FOUR_DIGIT_YEAR_TOGGLE, &defaultBool, sizeof(defaultBool));
+		numKeys++;
+	}
+	
+	
 	
 	//Strings
 	//DEFINATLY NEEDS TO BE FIXED.  persist_write_data vs persist_write-string.
@@ -1555,6 +1696,18 @@ static void checkStorage(){
 		persist_write_data(KEY_BOTTEM_MIDDLE, &bottem_middle, sizeof(bottem_middle));
 		numKeys++;
 	}
+	if(!persist_exists(KEY_DATE_CONFIG)){
+		char date_config[10] = "DMY";
+		persist_write_data(KEY_DATE_CONFIG, &date_config, sizeof(date_config));
+		numKeys++;
+	}
+	if(!persist_exists(KEY_DATE_SEPORATOR)){
+		char date_seporator[10] = "/";
+		persist_write_data(KEY_DATE_SEPORATOR, &date_seporator, sizeof(date_seporator));
+		numKeys++;
+	}
+	
+	
 	forceWeatherUpdate();
 	
 	printf("Generated %d defaults in storage", numKeys);
@@ -1757,6 +1910,15 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 		bool celcius_set = celcius_set_t->value->int32 == 1;
 		persist_write_data(KEY_CELCIUS_TOGGLE, &celcius_set, sizeof(celcius_set));
 	}
+	Tuple *four_digit_year_t = dict_find(iter, KEY_FOUR_DIGIT_YEAR_TOGGLE);
+	if(four_digit_year_t) {
+		bool four_digit_year = four_digit_year_t->value->int32 == 1;
+		persist_write_data(KEY_FOUR_DIGIT_YEAR_TOGGLE, &four_digit_year, sizeof(four_digit_year));
+	}
+	
+	
+	
+	
         //read slider preferences
 	Tuple *seconds_count_t = dict_find(iter, KEY_SECONDS_COUNT);
 	if(seconds_count_t) {
@@ -1768,7 +1930,6 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 	Tuple *bottem_left_t = dict_find(iter, KEY_BOTTEM_LEFT);
 	if(bottem_left_t) {
 		char *bottem_left = bottem_left_t->value->cstring;
-		printf("Got string: %s", bottem_left);
 		persist_write_string(KEY_BOTTEM_LEFT, bottem_left);
 		char retrieveTest[30];
 		persist_read_string(KEY_BOTTEM_LEFT, retrieveTest, sizeof(retrieveTest));
@@ -1776,14 +1937,22 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 	Tuple *bottem_right_t = dict_find(iter, KEY_BOTTEM_RIGHT);
 	if(bottem_right_t) {
 		char *bottem_right = bottem_right_t->value->cstring;
-		printf("Got string: %s", bottem_right);
 		persist_write_string(KEY_BOTTEM_RIGHT, bottem_right);
 	}
 	Tuple *bottem_middle_t = dict_find(iter, KEY_BOTTEM_MIDDLE);
 	if(bottem_middle_t) {
 		char *bottem_middle = bottem_middle_t->value->cstring;
-		printf("Got string: %s", bottem_middle);
 		persist_write_string(KEY_BOTTEM_MIDDLE, bottem_middle);
+	}
+	Tuple *date_config_t = dict_find(iter, KEY_DATE_CONFIG);
+	if(date_config_t) {
+		char *date_config = date_config_t->value->cstring;
+		persist_write_string(KEY_DATE_CONFIG, date_config);
+	}
+	Tuple *date_seporator_t = dict_find(iter, KEY_DATE_SEPORATOR);
+	if(date_seporator_t) {
+		char *date_seporator = date_seporator_t->value->cstring;
+		persist_write_string(KEY_DATE_SEPORATOR, date_seporator);
 	}
 
 
@@ -1954,7 +2123,7 @@ static void init() {
 	strftime(date_buffer,80,"%a, %d/%m/%y", info);
 	printf("Formatted date & time : |%s|\n", date_buffer );
 	text_layer_set_font(s_date_layer, s_date_font);
-	text_layer_set_text(s_date_layer, date_buffer );
+	text_layer_set_text(s_date_layer, getDate() );
 
 	printf("%s", "Registering callbacks");
 	// Register callbacks
