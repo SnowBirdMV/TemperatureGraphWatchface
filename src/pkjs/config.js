@@ -117,6 +117,38 @@ module.exports = [
 		{ 
 			"label": "Time Since Last Battery Charge",
 			"value": "BatteryChargeTime" 
+		},
+		{ 
+			"label": "Wind Speed",
+			"value": "WindSpeed" 
+		}
+		]
+	},
+	{
+		"type": "select",
+		"messageKey": "BottemMiddle",
+		"defaultValue": "Wind Speed",
+		"label": "Bottem Middle",
+		"options": [
+		{ 
+			"label": "Time since last wetather update", 
+			"value": "WeatherUpdateTime" 
+		},
+		{ 
+			"label": "Calories Burned",
+			"value": "CaloriesBurned" 
+		},
+		{ 
+			"label": "Time Slept",
+			"value": "TimeSlept" 
+		},
+		{ 
+			"label": "Time Since Last Battery Charge",
+			"value": "BatteryChargeTime" 
+		},
+		{ 
+			"label": "Wind Speed",
+			"value": "WindSpeed" 
 		}
 		]
 	},
@@ -141,6 +173,10 @@ module.exports = [
 		{ 
 			"label": "Time Since Last Battery Charge",
 			"value": "BatteryChargeTime" 
+		},
+		{ 
+			"label": "Wind Speed",
+			"value": "WindSpeed" 
 		}
 		]
 	}

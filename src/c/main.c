@@ -45,6 +45,7 @@
 #define KEY_TRIPLE_SHAKE 1036
 #define KEY_BOTTEM_LEFT 1037
 #define KEY_BOTTEM_RIGHT 1038
+#define KEY_BOTTEM_MIDDLE 1039
 
 #define TEMP_DATA_POINTS 20
 #define POP_DATA_POINTS 20
@@ -60,6 +61,7 @@ static TextLayer *s_date_layer;
 static TextLayer *s_steps_layer;
 static TextLayer *s_bottem_left_layer;
 static TextLayer *s_bottem_right_layer;
+static TextLayer *s_bottem_middle_layer;
 static TextLayer *s_data_refreshed_time_layer;
 static TextLayer *s_battery_time_layer;
 static TextLayer *s_sleep_layer;
@@ -128,8 +130,11 @@ int accelBuffer = 0;
 static char reasonStr[20];
 static char bottemLeft[30];
 static char bottemRight[30];
+static char bottemMiddle[30];
 static char calorie_count_str[10];
 static char sleep_time_string[15];
+static GTextAttributes *temp_text_attributes;
+
 
 int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -197,6 +202,7 @@ static void storeOptions(){
 	//strings
 	persist_read_string(KEY_BOTTEM_LEFT, bottemLeft, sizeof(bottemLeft));
 	persist_read_string(KEY_BOTTEM_RIGHT, bottemRight, sizeof(bottemRight));
+	persist_read_string(KEY_BOTTEM_MIDDLE, bottemMiddle, sizeof(bottemMiddle));
 	
 	//integers
 	persist_read_data(KEY_SECONDS_COUNT, &num_seconds, sizeof(num_seconds));
@@ -471,7 +477,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 							shift ++;
 						}
 						//printf("i is: %d, shift is: %d", i, shift);
-						graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, shift - 14 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+						graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, shift - 14 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, temp_text_attributes);
 					}
 					else{
 						start = 50;
@@ -480,7 +486,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 							shift --;
 						}
 						//printf("i is: %d, shift is: %d", i, shift);
-						graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, 50 + shift,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+						graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, 50 + shift,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, temp_text_attributes);
 					}
 				}
 				else{
@@ -490,7 +496,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 							shift ++;
 						}
 						//printf("i is: %d, shift is: %d", i, shift);
-						graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, shift - 14 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+						graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, shift - 14 ,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, temp_text_attributes);
 					}
 					else{
 						start = 50;
@@ -499,7 +505,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 							shift --;
 						}
 						//printf("i is: %d, shift is: %d", i, shift);
-						graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, 50 + shift,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, graphics_text_attributes_create());
+						graphics_draw_text(ctx, graph_temp_buffer, s_battery_font, GRect(i*xDistance-4, 50 + shift,25, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, temp_text_attributes);
 					}
 				}
 
@@ -683,11 +689,12 @@ static void health_handler(HealthEventType event, void *context) {
 	}
 }
 
-static void update_humidity(){
+static char* update_humidity(){
 	static char humidity_buffer[10];
 	snprintf(humidity_buffer, sizeof(humidity_buffer), "%d%%", curent_humidity);
 	text_layer_set_text_color(s_humidity_layer, humidity_color);
 	text_layer_set_text(s_humidity_layer, humidity_buffer);
+	return humidity_buffer;
 }
 
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
@@ -756,8 +763,8 @@ static void steps_below_update_proc(Layer *layer, GContext *ctx){
 	graphics_context_set_compositing_mode(ctx, GCompOpSet);
 	graphics_draw_bitmap_in_rect(ctx, s_steps_below_image, gbitmap_get_bounds(s_steps_below_image));
 }
-static void updateWindSpeed(){
-    static char windDirectionString[5];
+static char* updateWindSpeed(){
+    static char windDirectionString[4];
     int windDirection = persist_read_int(KEY_CURENT_WIND_DIRECTION);
     if (windDirection >= 348 || windDirection < 11){
         snprintf(windDirectionString, sizeof(windDirectionString), "N");
@@ -812,8 +819,9 @@ static void updateWindSpeed(){
     int windData = persist_read_int(KEY_WIND_SPEED_CURENT);
     static char wind_buffer[10];
 	snprintf(wind_buffer, sizeof(wind_buffer), "%s %d", windDirectionString, windData);
-	text_layer_set_text_color(s_wind_speed_layer, GColorWhite);
-	text_layer_set_text(s_wind_speed_layer, wind_buffer);
+	//text_layer_set_text_color(s_wind_speed_layer, GColorWhite);
+	//text_layer_set_text(s_wind_speed_layer, "FIX ME");
+	return wind_buffer;
 }
 
 
@@ -858,33 +866,43 @@ static void update_bot_left(){
 		
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), battery_charge_time_update_proc);
 	}
+	else if(strcmp(bottemLeft, "WindSpeed") == 0){
+		text_layer_set_text(s_bottem_left_layer, updateWindSpeed());
+	}
 	else{
 		printf("Invalid bottem left Identifier");
 		printf("Recieved: %s", bottemLeft);
 	}
 }
 
+//-----------------------------------------------------------------------------------------------------
+//									Update Bottem Right
+//-----------------------------------------------------------------------------------------------------
+
 static void update_bot_right(){
 	printf("Ditermining bot left setting");
 	if (strcmp(bottemRight, "WeatherUpdateTime") == 0){
-		printf("bot_left setting to: WeatherUpdateTime");
+		printf("bot_right setting to: WeatherUpdateTime");
 		text_layer_set_text(s_bottem_right_layer, calculate_data_time_difference());
 	}
 	else if (strcmp(bottemRight, "CaloriesBurned") == 0){
-		printf("bot_left setting to: CaloriesBurned");
+		printf("bot_right setting to: CaloriesBurned");
 		text_layer_set_text(s_bottem_right_layer, calorie_count_str);
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), calories_burned_update_proc);
 	}
 	else if (strcmp(bottemRight, "TimeSlept") == 0){
-		printf("bot_left setting to: TimeSlept");
+		printf("bot_right setting to: TimeSlept");
 		text_layer_set_text(s_bottem_right_layer, sleep_time_string);
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), time_slept_update_proc);
 	}
 	else if (strcmp(bottemRight, "BatteryChargeTime") == 0){
-		printf("bot_left setting to: BatteryChargeTime");
+		printf("bot_right setting to: BatteryChargeTime");
 		text_layer_set_text(s_bottem_right_layer, calculate_battery_time_difference());
 		
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), battery_charge_time_update_proc);
+	}
+	else if(strcmp(bottemLeft, "WindSpeed") == 0){
+		text_layer_set_text(s_bottem_right_layer, updateWindSpeed());
 	}
 	else{
 		printf("Invalid bottem right Identifier");
@@ -892,9 +910,46 @@ static void update_bot_right(){
 	}
 }
 
+//-----------------------------------------------------------------------------------------------------
+//									Update Bottem Middle
+//-----------------------------------------------------------------------------------------------------
+
+static void update_bot_middle(){
+	printf("Ditermining bot left setting");
+	if (strcmp(bottemMiddle, "WeatherUpdateTime") == 0){
+		printf("bot_mid setting to: WeatherUpdateTime");
+		text_layer_set_text(s_bottem_middle_layer, calculate_data_time_difference());
+	}
+	else if (strcmp(bottemMiddle, "CaloriesBurned") == 0){
+		printf("bot_mid setting to: CaloriesBurned");
+		text_layer_set_text(s_bottem_middle_layer, calorie_count_str);
+		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), calories_burned_update_proc);
+	}
+	else if (strcmp(bottemMiddle, "TimeSlept") == 0){
+		printf("bot_mid setting to: TimeSlept");
+		text_layer_set_text(s_bottem_middle_layer, sleep_time_string);
+		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), time_slept_update_proc);
+	}
+	else if (strcmp(bottemMiddle, "BatteryChargeTime") == 0){
+		printf("bot_mid setting to: BatteryChargeTime");
+		text_layer_set_text(s_bottem_middle_layer, calculate_battery_time_difference());
+		
+		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), battery_charge_time_update_proc);
+	}
+	else if(strcmp(bottemMiddle, "WindSpeed") == 0){
+		text_layer_set_text(s_bottem_middle_layer, updateWindSpeed());
+	}
+	else{
+		printf("Invalid bottem Middle Identifier");
+		printf("Recieved: %s", bottemMiddle);
+	}
+}
+
 static void updateDisplay(){
 	update_bot_left();
 	update_bot_right();
+	printf("Going to bot mid");
+	update_bot_middle();
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -1176,12 +1231,12 @@ static void main_window_load(Window *window) {
 
 	calculate_battery_time_difference();
     
-    s_wind_speed_layer = text_layer_create(GRect(0, 153, 144, 25));
-    text_layer_set_text_color(s_wind_speed_layer, GColorWhite);
-    text_layer_set_background_color(s_wind_speed_layer, GColorClear);
-	text_layer_set_text_alignment(s_wind_speed_layer, GTextAlignmentCenter);
-	text_layer_set_font(s_wind_speed_layer, s_battery_font);
-    layer_add_child(window_layer,text_layer_get_layer(s_wind_speed_layer));
+    s_bottem_middle_layer = text_layer_create(GRect(0, 153, 144, 25));
+    text_layer_set_text_color(s_bottem_middle_layer, GColorWhite);
+    text_layer_set_background_color(s_bottem_middle_layer, GColorClear);
+	text_layer_set_text_alignment(s_bottem_middle_layer, GTextAlignmentCenter);
+	text_layer_set_font(s_bottem_middle_layer, s_battery_font);
+    layer_add_child(window_layer,text_layer_get_layer(s_bottem_middle_layer));
     updateWindSpeed();
     
 
@@ -1207,6 +1262,8 @@ static void main_window_load(Window *window) {
 		layer_set_hidden(bitmap_layer_get_layer(s_battery_charging_layer), true);
 	}
 	layer_add_child(window_layer,bitmap_layer_get_layer(s_battery_charging_layer));
+	
+	temp_text_attributes = graphics_text_attributes_create();
 
 
 
@@ -1459,6 +1516,11 @@ static void checkStorage(){
 		persist_write_data(KEY_BOTTEM_RIGHT, &bottem_right, sizeof(bottem_right));
 		numKeys++;
 	}
+	if(!persist_exists(KEY_BOTTEM_MIDDLE)){
+		char bottem_middle[100] = "WindSpeed";
+		persist_write_data(KEY_BOTTEM_MIDDLE, &bottem_middle, sizeof(bottem_middle));
+		numKeys++;
+	}
 	forceWeatherUpdate();
 	
 	printf("Generated %d defaults in storage", numKeys);
@@ -1672,6 +1734,12 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 		char *bottem_right = bottem_right_t->value->cstring;
 		printf("Got string: %s", bottem_right);
 		persist_write_string(KEY_BOTTEM_RIGHT, bottem_right);
+	}
+	Tuple *bottem_middle_t = dict_find(iter, KEY_BOTTEM_MIDDLE);
+	if(bottem_middle_t) {
+		char *bottem_middle = bottem_middle_t->value->cstring;
+		printf("Got string: %s", bottem_middle);
+		persist_write_string(KEY_BOTTEM_MIDDLE, bottem_middle);
 	}
 
 

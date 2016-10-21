@@ -24,6 +24,7 @@
             "BatteryTime": 1003,
             "BatteryUnchargedColor": 1011,
             "BottemLeft": 1037,
+            "BottemMiddle": 1039,
             "BottemRight": 1038,
             "CelciusToggle": 1035,
             "CurentWindData": 1033,
