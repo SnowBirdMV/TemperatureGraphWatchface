@@ -43,6 +43,8 @@
             "SecondTick": 1024,
             "SecondsCount": 1025,
             "SleepModeToggle": 1032,
+            "StepsAboveColor": 1040,
+            "StepsBelowColor": 1041,
             "StepsColor": 1016,
             "TempLineColor": 1009,
             "TempNumberColor": 1015,

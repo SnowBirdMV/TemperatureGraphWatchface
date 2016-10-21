@@ -237,6 +237,18 @@ module.exports = [
 		"defaultValue": "0x555555",
 		"label": "Battery Outline Color"
 	},
+	{
+		"type": "color",
+		"messageKey": "StepsAboveColor",
+		"defaultValue": "0x00FF00",
+		"label": "Above Step Average Color"
+	},
+	{
+		"type": "color",
+		"messageKey": "StepsBelowColor",
+		"defaultValue": "0xFF0000",
+		"label": "Below Step Average Color"
+	},
 
 	]
 },

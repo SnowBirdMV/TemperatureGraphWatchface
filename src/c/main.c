@@ -46,6 +46,8 @@
 #define KEY_BOTTEM_LEFT 1037
 #define KEY_BOTTEM_RIGHT 1038
 #define KEY_BOTTEM_MIDDLE 1039
+#define KEY_STEPS_ABOVE_COLOR 1040
+#define KEY_STEPS_BELOW_COLOR 1041
 
 #define TEMP_DATA_POINTS 20
 #define POP_DATA_POINTS 20
@@ -73,6 +75,7 @@ static Layer *s_graph_background;
 static Layer *s_grid_background;
 static Layer *s_battery_charge;
 static Layer *s_battery_behind_clock;
+static Layer *s_step_arrow_layer;
 
 
 
@@ -113,6 +116,8 @@ GColor weather_color;
 GColor humidity_color;
 GColor graph_line_color;
 GColor battery_outline_color;
+GColor steps_above_color;
+GColor steps_below_color;
 
 bool asleep = false;
 bool bat_behind_graph;
@@ -121,6 +126,7 @@ bool sleep_mode_enabled;
 bool change_grid_color;
 bool triple_shake;
 bool celcius;
+bool above_average = true;
 
 int asleep_time = 0;
 int second_counter = 0;
@@ -169,6 +175,11 @@ static const GPathInfo popPathInfo = {
 	{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
 	{160, 50}, {0, 50}, {0,0}}};
 
+static GPath *arrowPath = NULL;
+static const GPathInfo arrowPathInfo = {
+	.num_points = 3,
+	.points = (GPoint []) {{0, 0}, {20, 0}, {10, 20}}};
+
 
 
 static void storeOptions(){
@@ -190,6 +201,8 @@ static void storeOptions(){
 	persist_read_data(KEY_WEATHER_COLOR, &weather_color, sizeof(weather_color));
 	persist_read_data(KEY_GRAPH_LINE_COLOR, &graph_line_color, sizeof(graph_line_color));
 	persist_read_data(KEY_BATTERY_OUTLINE_COLOR, &battery_outline_color, sizeof(battery_outline_color));
+	persist_read_data(KEY_STEPS_ABOVE_COLOR, &steps_above_color, sizeof(steps_above_color));
+	persist_read_data(KEY_STEPS_BELOW_COLOR, &steps_below_color, sizeof(steps_below_color));
 	
 	//booleans
 	persist_read_data(KEY_BATTERY_BEHIND_CLOCK_TOGGLE, &bat_behind_graph, sizeof(bat_behind_graph));
@@ -327,13 +340,15 @@ static void update_step_average(){
 	get_step_average();
 	printf("s_step_cpout: %d, s_step_average: %d, s_step_goal: %d", s_step_count, s_step_average, s_step_goal);
 	if (s_step_average < s_step_count){
-		layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), false);
-		layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), true);
+		//layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), false);
+		//layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), true);
+		above_average = true;
 		printf("You are now above your step average");
 	}
 	else{
-		layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), true);
-		layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), false);
+		//layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), true);
+		//layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), false);
+		above_average = false;
 		printf("You are now below your step average");
 	}
 }
@@ -408,6 +423,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 	popPathInfo.points[22] = GPoint(0, 50 - popData[0]/2);
 	popPath = gpath_create(&popPathInfo);
 	gpath_draw_filled(ctx, popPath);
+	gpath_destroy(popPath);
 	if(change_grid_color){
 	if (connection_service_peek_pebble_app_connection()){
 		graphics_context_set_stroke_color(ctx, grid_color);
@@ -763,6 +779,21 @@ static void steps_below_update_proc(Layer *layer, GContext *ctx){
 	graphics_context_set_compositing_mode(ctx, GCompOpSet);
 	graphics_draw_bitmap_in_rect(ctx, s_steps_below_image, gbitmap_get_bounds(s_steps_below_image));
 }
+
+static void s_step_arrow_layer_update_proc(Layer *layer, GContext *ctx){
+	if(above_average){
+		graphics_context_set_stroke_color(ctx, steps_above_color);
+		graphics_context_set_fill_color(ctx, steps_above_color);
+	}
+	else{
+		graphics_context_set_stroke_color(ctx, steps_below_color);
+		graphics_context_set_fill_color(ctx, steps_below_color);
+	}
+	arrowPath = gpath_create(&arrowPathInfo);
+	gpath_draw_filled(ctx, arrowPath);
+	gpath_destroy(arrowPath);
+}
+
 static char* updateWindSpeed(){
     static char windDirectionString[4];
     int windDirection = persist_read_int(KEY_CURENT_WIND_DIRECTION);
@@ -822,20 +853,6 @@ static char* updateWindSpeed(){
 	//text_layer_set_text_color(s_wind_speed_layer, GColorWhite);
 	//text_layer_set_text(s_wind_speed_layer, "FIX ME");
 	return wind_buffer;
-}
-
-
-static void weather_update_time_update_proc(Layer *layer, GContext *ctx){
-	printf("Registered weather update time");
-}
-static void calories_burned_update_proc(Layer *layer, GContext *ctx){
-	printf("Registered calories burned");
-}
-static void time_slept_update_proc(Layer *layer, GContext *ctx){
-	printf("Registered tiem slept");
-}
-static void battery_charge_time_update_proc(Layer *layer, GContext *ctx){
-	printf("Registered battery charge time");
 }
 
 
@@ -980,9 +997,6 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 			if (second_counter > 0){
 				second_counter--;
 			}
-            size_t memoryUsageStart = heap_bytes_used();
-            size_t memoryUsageFun = heap_bytes_used();
-            size_t memoryUsageNow;
 			update_time();          
 			update_step_average();
 			calculate_data_time_difference();
@@ -1238,6 +1252,11 @@ static void main_window_load(Window *window) {
 	text_layer_set_font(s_bottem_middle_layer, s_battery_font);
     layer_add_child(window_layer,text_layer_get_layer(s_bottem_middle_layer));
     updateWindSpeed();
+	
+	
+	s_step_arrow_layer = layer_create(GRect(0, 111, 20, 20));
+	layer_set_update_proc(s_step_arrow_layer, s_step_arrow_layer_update_proc);
+	layer_add_child(window_layer,s_step_arrow_layer);
     
 
 	time_t storedTime;
@@ -1264,6 +1283,8 @@ static void main_window_load(Window *window) {
 	layer_add_child(window_layer,bitmap_layer_get_layer(s_battery_charging_layer));
 	
 	temp_text_attributes = graphics_text_attributes_create();
+	layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), true);
+	layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), true);
 
 
 
@@ -1466,6 +1487,19 @@ static void checkStorage(){
 		persist_write_data(KEY_BATTERY_OUTLINE_COLOR, &defaultColor, sizeof(defaultColor));
 		numKeys++;
 	} 
+	if(!persist_exists(KEY_STEPS_ABOVE_COLOR)){
+		defaultColor = GColorRed;
+		persist_write_data(KEY_BATTERY_OUTLINE_COLOR, &defaultColor, sizeof(defaultColor));
+		numKeys++;
+	} 
+	if(!persist_exists(KEY_STEPS_BELOW_COLOR)){
+		defaultColor = GColorGreen;
+		persist_write_data(KEY_BATTERY_OUTLINE_COLOR, &defaultColor, sizeof(defaultColor));
+		numKeys++;
+	} 
+	
+	//booleans
+	
 
 	if(!persist_exists(KEY_BATTERY_BEHIND_CLOCK_TOGGLE)){
 		defaultBool = true;
@@ -1680,6 +1714,16 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 	if(battery_outline_color_t) {
 		battery_outline_color = GColorFromHEX(battery_outline_color_t->value->int32);
 		persist_write_data(KEY_BATTERY_OUTLINE_COLOR, &battery_outline_color, sizeof(battery_outline_color));
+	}
+	Tuple *steps_above_color_t = dict_find(iter, KEY_STEPS_ABOVE_COLOR);
+	if(steps_above_color_t) {
+		steps_above_color = GColorFromHEX(steps_above_color_t->value->int32);
+		persist_write_data(KEY_STEPS_ABOVE_COLOR, &steps_above_color, sizeof(steps_above_color));
+	}
+	Tuple *steps_below_color_t = dict_find(iter, KEY_STEPS_BELOW_COLOR);
+	if(steps_below_color_t) {
+		steps_below_color = GColorFromHEX(steps_below_color_t->value->int32);
+		persist_write_data(KEY_STEPS_BELOW_COLOR, &steps_below_color, sizeof(steps_below_color));
 	}
 
   // Read boolean preferences
