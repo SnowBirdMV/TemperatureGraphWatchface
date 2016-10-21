@@ -59,6 +59,7 @@ static TextLayer *s_battery_charge_layer;
 static TextLayer *s_date_layer;
 static TextLayer *s_steps_layer;
 static TextLayer *s_bottem_left_layer;
+static TextLayer *s_bottem_right_layer;
 static TextLayer *s_data_refreshed_time_layer;
 static TextLayer *s_battery_time_layer;
 static TextLayer *s_sleep_layer;
@@ -127,6 +128,8 @@ int accelBuffer = 0;
 static char reasonStr[20];
 static char bottemLeft[30];
 static char bottemRight[30];
+static char calorie_count_str[10];
+static char sleep_time_string[15];
 
 int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -138,6 +141,30 @@ static bool s_js_ready = true;
 bool comm_is_js_ready() {
 	return s_js_ready;
 }
+
+static uint32_t const disconnect_vibe_segments[] = { 500, 250, 500 };
+VibePattern disconnect_vibe = {
+	.durations = disconnect_vibe_segments,
+	.num_segments = ARRAY_LENGTH(disconnect_vibe_segments),
+};
+
+static uint32_t const connect_vibe_segments[] = { 250, 100, 250, 100, 250 };
+VibePattern connect_vibe = {
+	.durations = connect_vibe_segments,
+	.num_segments = ARRAY_LENGTH(connect_vibe_segments),
+};
+
+static GPath *popPath = NULL;
+static const GPathInfo popPathInfo = {
+	.num_points = 23,
+	.points = (GPoint []) {{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
+	{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
+	{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
+	{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
+	{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
+	{160, 50}, {0, 50}, {0,0}}};
+
+
 
 static void storeOptions(){
 	//colors
@@ -168,24 +195,25 @@ static void storeOptions(){
 	persist_read_data(KEY_CELCIUS_TOGGLE, &celcius, sizeof(celcius));
 	
 	//strings
-	persist_read_data(KEY_BOTTEM_LEFT, &bottemLeft, sizeof(bottemLeft));
-	persist_read_data(KEY_BOTTEM_RIGHT, &bottemRight, sizeof(bottemRight));
+	persist_read_string(KEY_BOTTEM_LEFT, bottemLeft, sizeof(bottemLeft));
+	persist_read_string(KEY_BOTTEM_RIGHT, bottemRight, sizeof(bottemRight));
 	
 	//integers
 	persist_read_data(KEY_SECONDS_COUNT, &num_seconds, sizeof(num_seconds));
 
 }
 
-void calculate_data_time_difference(){
+const char*  calculate_data_time_difference(){
 	time_t storedTime;
 	unsigned long testLong;
 	persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
 	testLong = (unsigned long)storedTime;
 	//printf("Time currently in storage (from loading main window) is : %lu", (unsigned long)testLong);
 	dataTime = testLong;
+	static char refreshTimeBuffer[70];
 	if (dataTime != 0){
 		//printf("Inside update_proc");
-		static char refreshTimeBuffer[70];
+		
 		time_t curentTime = time(NULL);
 		unsigned long curentTimeLong = curentTime;
 		unsigned long timeDifference = curentTimeLong - dataTime;
@@ -202,27 +230,30 @@ void calculate_data_time_difference(){
 		else{
 			snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lud %luh", timeDifference / 86400, timeDifference / 3600 % 24);
 		}
-		text_layer_set_text_color(s_bottem_left_layer, data_time_color);
-		text_layer_set_text(s_bottem_left_layer, refreshTimeBuffer );
+		//text_layer_set_text_color(s_bottem_left_layer, data_time_color);
+		//text_layer_set_text(s_bottem_left_layer, refreshTimeBuffer );
 		printf("Time sence last data refresh is: %s", refreshTimeBuffer);
+		
 		
 		//printf("Exiting update_proc");
 	}
 	else{
 		text_layer_set_text(s_bottem_left_layer, "Loading" );
 	}
+	return refreshTimeBuffer;
 }
 
-void calculate_battery_time_difference(){
+const char* calculate_battery_time_difference(){
 	time_t storedBatteryTime;
 	unsigned long testLong;
 	persist_read_data(KEY_BATTERY_TIME, &storedBatteryTime, sizeof(storedBatteryTime));
 	testLong = (unsigned long)storedBatteryTime;
 	//printf("Time currently in storage (from loading main window) is : %lu", (unsigned long)testLong);
+	static char refreshTimeBuffer[70];
 	time_t batteryTime = testLong;
 	if ((unsigned long)storedBatteryTime != 0){
 		//printf("Inside update_proc");
-		static char refreshTimeBuffer[70];
+		
 		time_t curentTime = time(NULL);
 		unsigned long curentTimeLong = curentTime;
 		unsigned long timeDifference = curentTimeLong - (unsigned long)storedBatteryTime;
@@ -240,37 +271,17 @@ void calculate_battery_time_difference(){
 			snprintf(refreshTimeBuffer, sizeof(refreshTimeBuffer), "%lud %luh", timeDifference / 86400, timeDifference / 3600 % 24);
 		}
 		
-		text_layer_set_text(s_battery_time_layer, refreshTimeBuffer );
+		//text_layer_set_text(s_battery_time_layer, "FIX ME" );
 		printf("Time sence last charge is: %s", refreshTimeBuffer);
+		
 		
 		//printf("Exiting update_proc");
 	}
 	else{
 		text_layer_set_text(s_bottem_left_layer, "Loading" );
 	}
+	return refreshTimeBuffer;
 }
-
-static uint32_t const disconnect_vibe_segments[] = { 500, 250, 500 };
-VibePattern disconnect_vibe = {
-	.durations = disconnect_vibe_segments,
-	.num_segments = ARRAY_LENGTH(disconnect_vibe_segments),
-};
-
-static uint32_t const connect_vibe_segments[] = { 250, 100, 250, 100, 250 };
-VibePattern connect_vibe = {
-	.durations = connect_vibe_segments,
-	.num_segments = ARRAY_LENGTH(connect_vibe_segments),
-};
-
-static GPath *popPath = NULL;
-static const GPathInfo popPathInfo = {
-	.num_points = 22,
-	.points = (GPoint []) {{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
-	{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
-	{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
-	{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
-	{0, 0}, {0, 0}, {0, 0}, {0, 0}, 
-	{160, 50}, {0, 50}}};
 
 
 static int batteryCharge = 0;
@@ -321,6 +332,32 @@ static void update_step_average(){
 	}
 }
 
+static void update_calorie_count(){
+	HealthMetric resting = HealthMetricRestingKCalories;
+	HealthMetric active = HealthMetricActiveKCalories;
+	int totalCalories = resting + active;
+	snprintf(calorie_count_str, sizeof(calorie_count_str), "%d", totalCalories);
+	printf("Total calories is: %d", totalCalories);
+	
+}
+
+static void update_sleep_time(){
+	HealthMetric sleepTimeSeconds = HealthMetricSleepSeconds;
+	unsigned long sleepTime = (unsigned long)sleepTimeSeconds;
+	if (sleepTime < 61){
+			snprintf(sleep_time_string, sizeof(sleep_time_string), "%lus", sleepTime);
+		}
+		else if (sleepTime > 61 && sleepTime < 3601){
+			snprintf(sleep_time_string, sizeof(sleep_time_string), "%lum %lus", sleepTime / 60, sleepTime % 60);
+		}
+		else if (sleepTime > 3600 && sleepTime < 86400){
+			snprintf(sleep_time_string, sizeof(sleep_time_string), "%luh %lum", sleepTime / 3600, sleepTime / 60 % 60);
+		}
+		else{
+			snprintf(sleep_time_string, sizeof(sleep_time_string), "%lud %luh", sleepTime / 86400, sleepTime / 3600 % 24);
+		}
+}
+
 
 static void inbox_dropped_callback(AppMessageResult reason, void *context) {
 	APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
@@ -362,6 +399,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 		popPathInfo.points[i] = GPoint((i + 1) * xDistance, 50 - popData[i]/2);
 		lastpoppoint = 50 - popData[i]/2;
 	}
+	popPathInfo.points[22] = GPoint(0, 50 - popData[0]/2);
 	popPath = gpath_create(&popPathInfo);
 	gpath_draw_filled(ctx, popPath);
 	if(change_grid_color){
@@ -543,6 +581,8 @@ static void updateWeather(){
 }
 
 static void forceWeatherUpdate(){
+	//still checks if javascript is ready
+	if (comm_is_js_ready()){
 	DictionaryIterator *iter;
 		app_message_outbox_begin(&iter);
 
@@ -552,62 +592,12 @@ static void forceWeatherUpdate(){
 			// Send the message!
 		printf("Sent request for weather to phone.");
 		app_message_outbox_send();
-}
-
-static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-	if (accelBuffer > 0){
-		accelBuffer--;
-	}
-	size_t memoryUsage = heap_bytes_used();
-	size_t memoryFree = heap_bytes_free();
-	printf("Memory currently used is: %zu/%zu", memoryUsage, memoryFree + memoryUsage);
-	if (!asleep){
-		printf("Seconds are: %d", tick_time->tm_sec);
-		if (tick_time->tm_sec == 59 || second_counter > 0){
-			if (second_counter > 0){
-				int testTime = tick_time->tm_sec;
-				static char batteryBuffer[10];
-				snprintf(batteryBuffer, sizeof(batteryBuffer), "%d", testTime);
-				printf("BatteryBuffer is: %s", batteryBuffer);
-				text_layer_set_text(s_seconds_layer, batteryBuffer);
-			}
-			if (second_counter == num_seconds){
-				layer_set_hidden(text_layer_get_layer(s_seconds_layer), false);
-				layer_set_hidden(text_layer_get_layer(s_battery_charge_layer), true);
-			}
-			if (second_counter == 1){
-				layer_set_hidden(text_layer_get_layer(s_seconds_layer), true);
-				layer_set_hidden(text_layer_get_layer(s_battery_charge_layer), false);
-			}
-			if (second_counter > 0){
-				second_counter--;
-			}
-            size_t memoryUsageStart = heap_bytes_used();
-            size_t memoryUsageFun = heap_bytes_used();
-            size_t memoryUsageNow;
-			update_time();          
-			update_step_average();
-			calculate_data_time_difference();
-			calculate_battery_time_difference();
-			updateWeather();
-            size_t memoryUsageEnd = heap_bytes_used();
-            printf("used memory at the end: %d", memoryUsageEnd);
-		}
-
 	}
 	else{
-		printf("I am asleep");
-		if (window_stack_get_top_window() == s_main_window){
-			window_stack_push(s_sleep_window, true);
-		}
-		if (asleep_time > 0){
-			asleep_time --;
-		}
-		else{
-			asleep = false;
-		}
+		printf("Tried to send wather data but JS was not ready");
 	}
 }
+
 static void battery_handler(BatteryChargeState charge){
 	batteryCharge = charge.charge_percent;
 	if (charge.is_charging){
@@ -675,10 +665,12 @@ static void health_handler(HealthEventType event, void *context) {
 		APP_LOG(APP_LOG_LEVEL_INFO, 
 			"New HealthService HealthEventMovementUpdate event");
 		update_step_average();
+		update_calorie_count();
 		break;
 		case HealthEventSleepUpdate:
 		APP_LOG(APP_LOG_LEVEL_INFO, 
 			"New HealthService HealthEventSleepUpdate event");
+		update_sleep_time();
 		if (sleep_mode_enabled){
 			asleep = true;
 			asleep_time = 10;
@@ -826,16 +818,139 @@ static void updateWindSpeed(){
 
 
 static void weather_update_time_update_proc(Layer *layer, GContext *ctx){
-
+	printf("Registered weather update time");
 }
 static void calories_burned_update_proc(Layer *layer, GContext *ctx){
-
+	printf("Registered calories burned");
 }
 static void time_slept_update_proc(Layer *layer, GContext *ctx){
-
+	printf("Registered tiem slept");
 }
 static void battery_charge_time_update_proc(Layer *layer, GContext *ctx){
+	printf("Registered battery charge time");
+}
 
+
+
+//-----------------------------------------------------------------------------------------------------
+//									Update Bottem Left
+//-----------------------------------------------------------------------------------------------------
+
+static void update_bot_left(){
+	printf("Ditermining bot left setting");
+	if (strcmp(bottemLeft, "WeatherUpdateTime") == 0){
+		printf("bot_left setting to: WeatherUpdateTime");
+		text_layer_set_text(s_bottem_left_layer, calculate_data_time_difference());
+	}
+	else if (strcmp(bottemLeft, "CaloriesBurned") == 0){
+		printf("bot_left setting to: CaloriesBurned");
+		text_layer_set_text(s_bottem_left_layer, calorie_count_str);
+		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), calories_burned_update_proc);
+	}
+	else if (strcmp(bottemLeft, "TimeSlept") == 0){
+		printf("bot_left setting to: TimeSlept");
+		text_layer_set_text(s_bottem_left_layer, sleep_time_string);
+		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), time_slept_update_proc);
+	}
+	else if (strcmp(bottemLeft, "BatteryChargeTime") == 0){
+		printf("bot_left setting to: BatteryChargeTime");
+		text_layer_set_text(s_bottem_left_layer, calculate_battery_time_difference());
+		
+		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), battery_charge_time_update_proc);
+	}
+	else{
+		printf("Invalid bottem left Identifier");
+		printf("Recieved: %s", bottemLeft);
+	}
+}
+
+static void update_bot_right(){
+	printf("Ditermining bot left setting");
+	if (strcmp(bottemRight, "WeatherUpdateTime") == 0){
+		printf("bot_left setting to: WeatherUpdateTime");
+		text_layer_set_text(s_bottem_right_layer, calculate_data_time_difference());
+	}
+	else if (strcmp(bottemRight, "CaloriesBurned") == 0){
+		printf("bot_left setting to: CaloriesBurned");
+		text_layer_set_text(s_bottem_right_layer, calorie_count_str);
+		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), calories_burned_update_proc);
+	}
+	else if (strcmp(bottemRight, "TimeSlept") == 0){
+		printf("bot_left setting to: TimeSlept");
+		text_layer_set_text(s_bottem_right_layer, sleep_time_string);
+		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), time_slept_update_proc);
+	}
+	else if (strcmp(bottemRight, "BatteryChargeTime") == 0){
+		printf("bot_left setting to: BatteryChargeTime");
+		text_layer_set_text(s_bottem_right_layer, calculate_battery_time_difference());
+		
+		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), battery_charge_time_update_proc);
+	}
+	else{
+		printf("Invalid bottem right Identifier");
+		printf("Recieved: %s", bottemRight);
+	}
+}
+
+static void updateDisplay(){
+	update_bot_left();
+	update_bot_right();
+}
+
+static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+	if (accelBuffer > 0){
+		accelBuffer--;
+	}
+	size_t memoryUsage = heap_bytes_used();
+	size_t memoryFree = heap_bytes_free();
+	printf("Memory currently used is: %zu/%zu", memoryUsage, memoryFree + memoryUsage);
+	if (!asleep){
+		printf("Seconds are: %d", tick_time->tm_sec);
+		if (tick_time->tm_sec == 59 || second_counter > 0){
+			if (second_counter > 0){
+				int testTime = tick_time->tm_sec;
+				static char batteryBuffer[10];
+				snprintf(batteryBuffer, sizeof(batteryBuffer), "%d", testTime);
+				printf("BatteryBuffer is: %s", batteryBuffer);
+				text_layer_set_text(s_seconds_layer, batteryBuffer);
+			}
+			if (second_counter == num_seconds){
+				layer_set_hidden(text_layer_get_layer(s_seconds_layer), false);
+				layer_set_hidden(text_layer_get_layer(s_battery_charge_layer), true);
+			}
+			if (second_counter == 1){
+				layer_set_hidden(text_layer_get_layer(s_seconds_layer), true);
+				layer_set_hidden(text_layer_get_layer(s_battery_charge_layer), false);
+			}
+			if (second_counter > 0){
+				second_counter--;
+			}
+            size_t memoryUsageStart = heap_bytes_used();
+            size_t memoryUsageFun = heap_bytes_used();
+            size_t memoryUsageNow;
+			update_time();          
+			update_step_average();
+			calculate_data_time_difference();
+			calculate_battery_time_difference();
+			updateWeather();
+            size_t memoryUsageEnd = heap_bytes_used();
+			updateDisplay();
+            printf("used memory at the end: %d", memoryUsageEnd);
+		}
+
+	}
+	else{
+		printf("I am asleep");
+		if (window_stack_get_top_window() == s_main_window){
+			window_stack_push(s_sleep_window, true);
+		}
+		if (asleep_time > 0){
+			asleep_time --;
+		}
+		else{
+			asleep = false;
+		}
+	}
 }
 
 static void main_window_load(Window *window) {
@@ -1043,38 +1158,21 @@ static void main_window_load(Window *window) {
 	text_layer_set_overflow_mode(s_bottem_left_layer, GTextOverflowModeWordWrap);
 	text_layer_set_font(s_bottem_left_layer, s_battery_font);
 	text_layer_set_text_color(s_bottem_left_layer, data_time_color);
-	text_layer_set_text(s_bottem_left_layer, "Hello" );
-	layer_add_child(window_layer,text_layer_get_layer(s_bottem_left_layer));
 	calculate_data_time_difference();
-	if (bottemLeft == "WeatherUpdateTime"){
-		printf("Update_proc setting to: WeatherUpdateTime");
-		layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), weather_update_time_update_proc);
-	}
-	else if (bottemLeft == "CaloriesBurned"){
-		printf("Update_proc setting to: CaloriesBurned");
-		layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), calories_burned_update_proc);
-	}
-	else if (bottemLeft == "TimeSlept"){
-		printf("Update_proc setting to: TimeSlept");
-		layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), time_slept_update_proc);
-	}
-	else if (bottemLeft == "BatteryChargeTime"){
-		printf("Update_proc setting to: BatteryChargeTime");
-		layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), battery_charge_time_update_proc);
-	}
-	else{
-		printf("Invalid bottem left Identifier");
-	}
+	
+	layer_mark_dirty(text_layer_get_layer(s_bottem_left_layer));
+	layer_add_child(window_layer,text_layer_get_layer(s_bottem_left_layer));
+	update_calorie_count();
+	update_sleep_time();
 
 
-	s_battery_time_layer = text_layer_create(GRect(94, 153, 50, 25));
-	text_layer_set_background_color(s_battery_time_layer, GColorClear);
-	text_layer_set_text_color(s_battery_time_layer, battery_life_color);
-	text_layer_set_text_alignment(s_battery_time_layer, GTextAlignmentCenter);
-	text_layer_set_overflow_mode(s_battery_time_layer, GTextOverflowModeWordWrap);
-	text_layer_set_font(s_battery_time_layer, s_battery_font);
-	text_layer_set_text(s_battery_time_layer, "Hello" );
-	layer_add_child(window_layer,text_layer_get_layer(s_battery_time_layer));
+	s_bottem_right_layer = text_layer_create(GRect(94, 153, 50, 25));
+	text_layer_set_background_color(s_bottem_right_layer, GColorClear);
+	text_layer_set_text_color(s_bottem_right_layer, battery_life_color);
+	text_layer_set_text_alignment(s_bottem_right_layer, GTextAlignmentCenter);
+	text_layer_set_overflow_mode(s_bottem_right_layer, GTextOverflowModeWordWrap);
+	text_layer_set_font(s_bottem_right_layer, s_battery_font);
+	layer_add_child(window_layer,text_layer_get_layer(s_bottem_right_layer));
 
 	calculate_battery_time_difference();
     
@@ -1136,6 +1234,9 @@ static void main_window_load(Window *window) {
 	battery_state_service_subscribe(battery_handler);
   // Add it as a child layer to the Window's root layer
 	layer_add_child(window_layer, text_layer_get_layer(s_time_layer));
+	
+	updateDisplay();
+	
 	printf("%s", "Registered last window");
 
 }
@@ -1346,6 +1447,8 @@ static void checkStorage(){
 	}
 	
 	//Strings
+	//DEFINATLY NEEDS TO BE FIXED.  persist_write_data vs persist_write-string.
+	//TODO
 	if(!persist_exists(KEY_BOTTEM_LEFT)){
 		char bottem_left[100] = "WeatherUpdateTime";
 		persist_write_data(KEY_BOTTEM_LEFT, &bottem_left, sizeof(bottem_left));
@@ -1356,6 +1459,7 @@ static void checkStorage(){
 		persist_write_data(KEY_BOTTEM_RIGHT, &bottem_right, sizeof(bottem_right));
 		numKeys++;
 	}
+	forceWeatherUpdate();
 	
 	printf("Generated %d defaults in storage", numKeys);
 	storeOptions();
@@ -1559,13 +1663,15 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 	if(bottem_left_t) {
 		char *bottem_left = bottem_left_t->value->cstring;
 		printf("Got string: %s", bottem_left);
-		persist_write_data(KEY_BOTTEM_LEFT, bottem_left, sizeof(*bottem_left));
+		persist_write_string(KEY_BOTTEM_LEFT, bottem_left);
+		char retrieveTest[30];
+		persist_read_string(KEY_BOTTEM_LEFT, retrieveTest, sizeof(retrieveTest));
 	}
 	Tuple *bottem_right_t = dict_find(iter, KEY_BOTTEM_RIGHT);
 	if(bottem_right_t) {
 		char *bottem_right = bottem_right_t->value->cstring;
 		printf("Got string: %s", bottem_right);
-		persist_write_data(KEY_BOTTEM_RIGHT, bottem_right, sizeof(*bottem_right));
+		persist_write_string(KEY_BOTTEM_RIGHT, bottem_right);
 	}
 
 
@@ -1577,6 +1683,8 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 		reloadMainWindow();
 	}
 
+	
+	storeOptions();
 
 
 }

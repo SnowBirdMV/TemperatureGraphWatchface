@@ -8,7 +8,7 @@ var clay = new Clay(clayConfig);
 var messageKeys = require('message_keys');
 
 
-var myAPIKey = 'cc1720352689e95736d730b20dfc9288';
+var myAPIKey = 'a26a735eab948fcd';
 
 var xhrRequest = function (url, type, callback) {
 	var xhr = new XMLHttpRequest();
@@ -211,7 +211,7 @@ Pebble.addEventListener('ready',
         Pebble.sendAppMessage({'JSReady': 1});
 
 		// Get the initial weather
-		//getWeather();
+		getWeather();
 	}
 );
 
