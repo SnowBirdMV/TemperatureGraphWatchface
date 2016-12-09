@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <string.h>
 
 #define KEY_CONDITIONS 1
 
@@ -51,6 +52,13 @@
 #define KEY_DATE_CONFIG 1042
 #define KEY_DATE_SEPORATOR 1043
 #define KEY_FOUR_DIGIT_YEAR_TOGGLE 1044
+#define KEY_WEATHER_UPDATE_TIME 1045
+#define KEY_GRID_DISCONNECTED_COLOR 1046
+#define KEY_BOTTEM_MIDDLE_COLOR 1047
+#define KEY_BLUETOOTH_CONNECTED_COLOR 1048
+#define KEY_BLUETOOTH_DISCONNECTED_COLOR 1049
+
+#define KEY_ERROR_CODE 10002
 
 #define TEMP_DATA_POINTS 20
 #define POP_DATA_POINTS 20
@@ -59,6 +67,7 @@
 
 static Window *s_main_window;
 static Window *s_sleep_window;
+static Window *s_error_window;
 static TextLayer *s_time_layer;
 static TextLayer *s_weather_layer;
 static TextLayer *s_battery_charge_layer;
@@ -74,11 +83,13 @@ static TextLayer *s_humidity_layer;
 static TextLayer *s_bgcolor_layer;
 static TextLayer *s_seconds_layer;
 static TextLayer *s_wind_speed_layer;
+static TextLayer *s_error_textLayer;
 static Layer *s_graph_background;
 static Layer *s_grid_background;
 static Layer *s_battery_charge;
 static Layer *s_battery_behind_clock;
 static Layer *s_step_arrow_layer;
+static Layer *s_bluetooth_image_drawn;
 
 
 
@@ -100,7 +111,6 @@ static GFont s_time_font;
 static GFont s_battery_font;
 static GFont s_weather_font;
 static GFont s_date_font;
-static GFont s_weather_font;
 
 GColor bg_color;
 GColor grid_color;
@@ -121,6 +131,10 @@ GColor graph_line_color;
 GColor battery_outline_color;
 GColor steps_above_color;
 GColor steps_below_color;
+GColor grid_disconnected_color;
+GColor bottem_middle_color;
+GColor bt_connected_color;
+GColor bt_disconnected_color;
 
 bool asleep = false;
 bool bat_behind_graph;
@@ -131,6 +145,7 @@ bool triple_shake;
 bool celcius;
 bool above_average = true;
 bool four_digit_year;
+bool error_state = false;
 
 int asleep_time = 0;
 int second_counter = 0;
@@ -141,8 +156,10 @@ static char reasonStr[20];
 static char bottemLeft[30];
 static char bottemRight[30];
 static char bottemMiddle[30];
-static char calorie_count_str[10];
+static char calorie_count_str[15];
+static char active_calorie_count_str[15];
 static char sleep_time_string[15];
+static char sleep_restful_string[15];
 static char date_config[10];
 static char date_seporator[10];
 static GTextAttributes *temp_text_attributes;
@@ -151,6 +168,7 @@ static GTextAttributes *temp_text_attributes;
 int tempData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int popData[20] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int curent_humidity = 0;
+int weather_update_time;
 
 unsigned long dataTime = 0;
 static bool s_js_ready = true;
@@ -184,7 +202,9 @@ static const GPathInfo popPathInfo = {
 static GPath *arrowPath = NULL;
 static const GPathInfo arrowPathInfo = {
 	.num_points = 3,
-	.points = (GPoint []) {{0, 0}, {20, 0}, {10, 20}}};
+	.points = (GPoint []) {{2, 2}, {18, 2}, {10, 18}}};
+
+
 
 
 
@@ -209,7 +229,11 @@ static void storeOptions(){
 	persist_read_data(KEY_BATTERY_OUTLINE_COLOR, &battery_outline_color, sizeof(battery_outline_color));
 	persist_read_data(KEY_STEPS_ABOVE_COLOR, &steps_above_color, sizeof(steps_above_color));
 	persist_read_data(KEY_STEPS_BELOW_COLOR, &steps_below_color, sizeof(steps_below_color));
-	
+	persist_read_data(KEY_GRID_DISCONNECTED_COLOR, &grid_disconnected_color, sizeof(grid_disconnected_color));
+	persist_read_data(KEY_BOTTEM_MIDDLE_COLOR, &bottem_middle_color, sizeof(bottem_middle_color));
+	persist_read_data(KEY_BLUETOOTH_CONNECTED_COLOR, &bt_connected_color, sizeof(bt_connected_color));
+	persist_read_data(KEY_BLUETOOTH_DISCONNECTED_COLOR, &bt_disconnected_color, sizeof(bt_disconnected_color));
+
 	
 	//booleans
 	persist_read_data(KEY_BATTERY_BEHIND_CLOCK_TOGGLE, &bat_behind_graph, sizeof(bat_behind_graph));
@@ -230,6 +254,8 @@ static void storeOptions(){
 	
 	//integers
 	persist_read_data(KEY_SECONDS_COUNT, &num_seconds, sizeof(num_seconds));
+	weather_update_time = persist_read_int(KEY_WEATHER_UPDATE_TIME);
+	printf("read %d weather update time", weather_update_time);
 
 }
 
@@ -351,31 +377,34 @@ static void update_step_average(){
 	get_step_average();
 	printf("s_step_cpout: %d, s_step_average: %d, s_step_goal: %d", s_step_count, s_step_average, s_step_goal);
 	if (s_step_average < s_step_count){
-		//layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), false);
-		//layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), true);
 		above_average = true;
 		printf("You are now above your step average");
 	}
 	else{
-		//layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), true);
-		//layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), false);
 		above_average = false;
 		printf("You are now below your step average");
 	}
 }
 
 static void update_calorie_count(){
-	HealthMetric resting = HealthMetricRestingKCalories;
-	HealthMetric active = HealthMetricActiveKCalories;
+	int resting = (int)health_service_sum_today(HealthMetricRestingKCalories);
+	int active = (int)health_service_sum_today(HealthMetricActiveKCalories);
 	int totalCalories = resting + active;
-	snprintf(calorie_count_str, sizeof(calorie_count_str), "%d", totalCalories);
+	snprintf(calorie_count_str, sizeof(calorie_count_str), "%d cal", totalCalories);
 	printf("Total calories is: %d", totalCalories);
 	printf("Active calories: %d, Passive callories: %d", (int)active, (int)resting);
 	
 }
 
+static void update_active_calorie_count(){
+	int active = (int)health_service_sum_today(HealthMetricActiveKCalories);
+	snprintf(active_calorie_count_str, sizeof(active_calorie_count_str), "%d cal", active);
+	printf("Active calories are %s", active_calorie_count_str);
+	
+}
+
 static void update_sleep_time(){
-	HealthMetric sleepTimeSeconds = HealthMetricSleepSeconds;
+	int sleepTimeSeconds = (int)health_service_sum_today(HealthMetricSleepSeconds );
 	unsigned long sleepTime = (unsigned long)sleepTimeSeconds;
 	if (sleepTime < 61){
 			snprintf(sleep_time_string, sizeof(sleep_time_string), "%lus", sleepTime);
@@ -391,6 +420,23 @@ static void update_sleep_time(){
 		}
 }
 
+static void update_sleep_restful_time(){
+	int sleepTimeSeconds = (int)health_service_sum_today(HealthMetricSleepRestfulSeconds  );
+	unsigned long sleepTime = (unsigned long)sleepTimeSeconds;
+	if (sleepTime < 61){
+			snprintf(sleep_restful_string, sizeof(sleep_restful_string), "%lus", sleepTime);
+		}
+		else if (sleepTime > 61 && sleepTime < 3601){
+			snprintf(sleep_restful_string, sizeof(sleep_restful_string), "%lum %lus", sleepTime / 60, sleepTime % 60);
+		}
+		else if (sleepTime > 3600 && sleepTime < 86400){
+			snprintf(sleep_restful_string, sizeof(sleep_restful_string), "%luh %lum", sleepTime / 3600, sleepTime / 60 % 60);
+		}
+		else{
+			snprintf(sleep_restful_string, sizeof(sleep_restful_string), "%lud %luh", sleepTime / 86400, sleepTime / 3600 % 24);
+		}
+}
+	
 
 static void inbox_dropped_callback(AppMessageResult reason, void *context) {
 	APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
@@ -404,18 +450,32 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
 	APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
 }
 
-static void update_time() {
+static char* update_time() {
   // Get a tm structure
 	time_t temp = time(NULL); 
 	struct tm *tick_time = localtime(&temp);
 
   // Write the current hours and minutes into a buffer
 	static char s_buffer[8];
-	strftime(s_buffer, sizeof(s_buffer), clock_is_24h_style() ?
-		"%H:%M" : "%I:%M", tick_time);
+	if (clock_is_24h_style()){
+		strftime(s_buffer, sizeof(s_buffer),"%H:%M" , tick_time);
+		printf("Hi there from 24hour");
+	}
+	else{
+		int hour = 0;
+		char minuteString[5];
+		strftime(minuteString, sizeof(minuteString),"%M" , tick_time);
+		hour = tick_time->tm_hour;
+		if (hour > 12){
+			hour = hour - 12;
+		}
+		snprintf(s_buffer, sizeof(s_buffer), "%d:%s", hour, minuteString);
+		
+	}
 
   // Display this time on the TextLayer
 	text_layer_set_text(s_time_layer, s_buffer);
+	return s_buffer;
 }
 static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
   // Custom drawing happens here
@@ -441,7 +501,7 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 		graphics_context_set_stroke_color(ctx, grid_color);
 	}
 	else{
-		graphics_context_set_stroke_color(ctx, GColorRed);
+		graphics_context_set_stroke_color(ctx, grid_disconnected_color);
 	}
 	}
 	else{
@@ -487,6 +547,11 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 		int newPointY = pointY + diff;
 		points[i] = newPointY;
 	}
+	time_t storedTime;
+	persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
+	unsigned long curentHour = storedTime / 3600;
+	curentHour = curentHour % 24 - 4;
+	char curentTime[10];
 	for (int i = 0; i < 20; i++){
 		//printf("newPointY %d, tempDatai %d, y2 %d, diff %d", points[i], tempData[i], y2, diffs[i]);
 		graphics_draw_line(ctx, GPoint((i-1)*xDistance,lastY), GPoint(i*xDistance,points[i]));
@@ -537,7 +602,19 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 					}
 				}
 
-			}	
+			}
+			if (curentHour > 24){
+				curentHour = curentHour - 24;
+			}
+			if (curentHour > 11 || curentHour == 0 ){
+				snprintf(curentTime, sizeof(curentTime), "%luPM", curentHour-12);
+			}
+			else if(curentHour < 12){
+				snprintf(curentTime, sizeof(curentTime), "%luAM", curentHour);
+			}
+			//printf("Time Is: %s, curentHour is: %d", curentTime, curentHour);
+			curentHour = curentHour + 4;
+			graphics_draw_text(ctx, curentTime, s_battery_font, GRect(i*xDistance-4, 35 ,30, 18), GTextOverflowModeWordWrap, GTextAlignmentCenter, temp_text_attributes);
 		}
 		lastY = points[i];
 	}
@@ -546,12 +623,12 @@ static void graph_bounds_layer_update_proc(Layer *layer, GContext *ctx) {
 
 static void grid_update_proc(Layer *layer, GContext *ctx){
 	if(change_grid_color){
-	if (connection_service_peek_pebble_app_connection()){
-		graphics_context_set_stroke_color(ctx, grid_color);
-	}
-	else{
-		graphics_context_set_stroke_color(ctx, GColorRed);
-	}
+		if (connection_service_peek_pebble_app_connection()){
+			graphics_context_set_stroke_color(ctx, grid_color);
+		}
+		else{
+			graphics_context_set_stroke_color(ctx, grid_disconnected_color);
+		}
 	}
 	else{
 		graphics_context_set_stroke_color(ctx, grid_color);
@@ -599,7 +676,7 @@ static void updateWeather(){
 	// Get weather update every hour
 	time_t storedTime;
 	persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
-	if((unsigned long)time(NULL) - (unsigned long)storedTime > 3599 && comm_is_js_ready()) {
+	if((unsigned long)time(NULL) - (unsigned long)storedTime >= (unsigned long)weather_update_time  && comm_is_js_ready()) {
 		printf("Time difference is %lu, time1: %lu, time2: %lu", (unsigned long)time(NULL) - (unsigned long)storedTime, (unsigned long)time(NULL), (unsigned long)storedTime);
 			// Begin dictionary
 		DictionaryIterator *iter;
@@ -649,14 +726,10 @@ static void battery_handler(BatteryChargeState charge){
 static void app_connection_handler(bool connected) {
 	APP_LOG(APP_LOG_LEVEL_INFO, "Pebble app %sconnected", connected ? "" : "dis");
 	if (connected){
-		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image_on), false);
-		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image), true);
 		printf("%s", "Pebble Connected!");
 		vibes_enqueue_custom_pattern(connect_vibe);
 	}
 	else{
-		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image_on), true);
-		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image), false);
 		printf("%s", "Pebble Disconnected!");
 		vibes_enqueue_custom_pattern(disconnect_vibe);
 	}
@@ -822,13 +895,17 @@ static void health_handler(HealthEventType event, void *context) {
 		APP_LOG(APP_LOG_LEVEL_INFO, 
 			"New HealthService HealthEventSignificantUpdate event");
 		update_step_average();
-
+		update_calorie_count();
+		update_active_calorie_count();
+		update_sleep_restful_time();
 		break;
 		case HealthEventMovementUpdate:
 		APP_LOG(APP_LOG_LEVEL_INFO, 
 			"New HealthService HealthEventMovementUpdate event");
 		update_step_average();
 		update_calorie_count();
+		update_active_calorie_count();
+		update_sleep_restful_time();
 		break;
 		case HealthEventSleepUpdate:
 		APP_LOG(APP_LOG_LEVEL_INFO, 
@@ -855,6 +932,7 @@ static char* update_humidity(){
 }
 
 static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
+	if (!error_state){
 	if(triple_shake){
 	if (accelBuffer > 6){
 		printf("Forced a weather update");
@@ -880,7 +958,7 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
 	update_step_average();
 	time_t storedTime;
 	persist_read_data(KEY_TIME, &storedTime, sizeof(storedTime));
-	if((unsigned long)time(NULL) - (unsigned long)storedTime > 3599) {
+	if((unsigned long)time(NULL) - (unsigned long)storedTime >= (unsigned long)weather_update_time) {
 		printf("Time difference is %lu, time1: %lu, time2: %lu", (unsigned long)time(NULL) - (unsigned long)storedTime, (unsigned long)time(NULL), (unsigned long)storedTime);
 	// Begin dictionary
 		DictionaryIterator *iter;
@@ -893,6 +971,13 @@ static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
 		printf("Sent request for weather to phone.");
 		app_message_outbox_send();
 	}
+	}
+	else{
+		if (window_stack_get_top_window() == s_error_window){
+			window_stack_pop(true);
+		}
+		error_state = 0;
+	}
 }
 static void seconds_proc(Layer *layer, GContext *ctx){
 
@@ -903,23 +988,7 @@ static void lightningbolt_update_proc(Layer *layer, GContext *ctx){
 	graphics_draw_bitmap_in_rect(ctx, s_lightningbolt, gbitmap_get_bounds(s_lightningbolt));
 }
 
-static void bluetooth_on_proc(Layer *layer, GContext *ctx){
-	graphics_context_set_compositing_mode(ctx, GCompOpSet);
-	graphics_draw_bitmap_in_rect(ctx, s_bluetooth_on, gbitmap_get_bounds(s_bluetooth_on));
-}
-static void bluetooth_off_proc(Layer *layer, GContext *ctx){
-	graphics_context_set_compositing_mode(ctx, GCompOpSet);
-	graphics_draw_bitmap_in_rect(ctx, s_bluetooth_off, gbitmap_get_bounds(s_bluetooth_off));
-}
 
-static void steps_above_update_proc(Layer *layer, GContext *ctx){
-	graphics_context_set_compositing_mode(ctx, GCompOpSet);
-	graphics_draw_bitmap_in_rect(ctx, s_steps_above_image, gbitmap_get_bounds(s_steps_above_image));
-}
-static void steps_below_update_proc(Layer *layer, GContext *ctx){
-	graphics_context_set_compositing_mode(ctx, GCompOpSet);
-	graphics_draw_bitmap_in_rect(ctx, s_steps_below_image, gbitmap_get_bounds(s_steps_below_image));
-}
 
 static void s_step_arrow_layer_update_proc(Layer *layer, GContext *ctx){
 	if(above_average){
@@ -933,6 +1002,38 @@ static void s_step_arrow_layer_update_proc(Layer *layer, GContext *ctx){
 	arrowPath = gpath_create(&arrowPathInfo);
 	gpath_draw_filled(ctx, arrowPath);
 	gpath_destroy(arrowPath);
+}
+
+static void bluetooth_image_drawn_update_proc(Layer *layer, GContext *ctx){
+	if (connection_service_peek_pebble_app_connection()){
+		graphics_context_set_stroke_color(ctx, bt_connected_color);
+	}
+	else{
+		graphics_context_set_stroke_color(ctx, bt_disconnected_color);
+	}
+	//s_bluetooth_path_ptr = gpath_create(&BT_PATH_INFO);
+	//gpath_draw_outline(ctx, s_bluetooth_path_ptr);
+	//gpath_destroy(popPath);
+	graphics_context_set_stroke_width(ctx, 1);
+	graphics_draw_line(ctx, GPoint(5,7), GPoint(15,17));
+	graphics_draw_line(ctx, GPoint(15,17), GPoint(10,22));
+	graphics_draw_line(ctx, GPoint(10,22), GPoint(10,2));
+	graphics_draw_line(ctx, GPoint(10,2), GPoint(15,7));
+	graphics_draw_line(ctx, GPoint(15,7), GPoint(5,17));
+	
+	graphics_draw_line(ctx, GPoint(5,6), GPoint(15,16));
+	graphics_draw_line(ctx, GPoint(15,16), GPoint(10,21));
+	graphics_draw_line(ctx, GPoint(9,23), GPoint(9,0));
+	graphics_draw_line(ctx, GPoint(10,1), GPoint(15,6));
+	graphics_draw_line(ctx, GPoint(15,6), GPoint(5,16));
+	
+	graphics_draw_line(ctx, GPoint(5,5), GPoint(15,15));
+	graphics_draw_line(ctx, GPoint(15,15), GPoint(10,20));
+	graphics_draw_line(ctx, GPoint(10,20), GPoint(10,0));
+	graphics_draw_line(ctx, GPoint(10,0), GPoint(15,5));
+	graphics_draw_line(ctx, GPoint(15,5), GPoint(5,15));
+	
+	printf("Hello");
 }
 
 static char* updateWindSpeed(){
@@ -1003,29 +1104,35 @@ static char* updateWindSpeed(){
 //-----------------------------------------------------------------------------------------------------
 
 static void update_bot_left(){
-	printf("Ditermining bot left setting");
+	//printf("Ditermining bot left setting");
 	if (strcmp(bottemLeft, "WeatherUpdateTime") == 0){
-		printf("bot_left setting to: WeatherUpdateTime");
+		//printf("bot_left setting to: WeatherUpdateTime");
 		text_layer_set_text(s_bottem_left_layer, calculate_data_time_difference());
 	}
 	else if (strcmp(bottemLeft, "CaloriesBurned") == 0){
-		printf("bot_left setting to: CaloriesBurned");
+		//printf("bot_left setting to: CaloriesBurned");
 		text_layer_set_text(s_bottem_left_layer, calorie_count_str);
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), calories_burned_update_proc);
 	}
 	else if (strcmp(bottemLeft, "TimeSlept") == 0){
-		printf("bot_left setting to: TimeSlept");
+		//printf("bot_left setting to: TimeSlept");
 		text_layer_set_text(s_bottem_left_layer, sleep_time_string);
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), time_slept_update_proc);
 	}
 	else if (strcmp(bottemLeft, "BatteryChargeTime") == 0){
-		printf("bot_left setting to: BatteryChargeTime");
+		//printf("bot_left setting to: BatteryChargeTime");
 		text_layer_set_text(s_bottem_left_layer, calculate_battery_time_difference());
 		
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), battery_charge_time_update_proc);
 	}
 	else if(strcmp(bottemLeft, "WindSpeed") == 0){
 		text_layer_set_text(s_bottem_left_layer, updateWindSpeed());
+	}
+	else if(strcmp(bottemLeft, "ActiveCalories") == 0){
+		text_layer_set_text(s_bottem_left_layer, active_calorie_count_str);
+	}
+	else if(strcmp(bottemLeft, "RestfulSleep") == 0){
+		text_layer_set_text(s_bottem_left_layer, sleep_restful_string);
 	}
 	else{
 		printf("Invalid bottem left Identifier");
@@ -1038,23 +1145,23 @@ static void update_bot_left(){
 //-----------------------------------------------------------------------------------------------------
 
 static void update_bot_right(){
-	printf("Ditermining bot left setting");
+	//printf("Ditermining bot right setting");
 	if (strcmp(bottemRight, "WeatherUpdateTime") == 0){
-		printf("bot_right setting to: WeatherUpdateTime");
+	//	printf("bot_right setting to: WeatherUpdateTime");
 		text_layer_set_text(s_bottem_right_layer, calculate_data_time_difference());
 	}
 	else if (strcmp(bottemRight, "CaloriesBurned") == 0){
-		printf("bot_right setting to: CaloriesBurned");
+	//	printf("bot_right setting to: CaloriesBurned");
 		text_layer_set_text(s_bottem_right_layer, calorie_count_str);
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), calories_burned_update_proc);
 	}
 	else if (strcmp(bottemRight, "TimeSlept") == 0){
-		printf("bot_right setting to: TimeSlept");
+	//	printf("bot_right setting to: TimeSlept");
 		text_layer_set_text(s_bottem_right_layer, sleep_time_string);
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), time_slept_update_proc);
 	}
 	else if (strcmp(bottemRight, "BatteryChargeTime") == 0){
-		printf("bot_right setting to: BatteryChargeTime");
+	//	printf("bot_right setting to: BatteryChargeTime");
 		text_layer_set_text(s_bottem_right_layer, calculate_battery_time_difference());
 		
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), battery_charge_time_update_proc);
@@ -1062,9 +1169,15 @@ static void update_bot_right(){
 	else if(strcmp(bottemLeft, "WindSpeed") == 0){
 		text_layer_set_text(s_bottem_right_layer, updateWindSpeed());
 	}
+	else if(strcmp(bottemLeft, "ActiveCalories") == 0){
+		text_layer_set_text(s_bottem_right_layer, active_calorie_count_str);
+	}
+	else if(strcmp(bottemLeft, "RestfulSleep") == 0){
+		text_layer_set_text(s_bottem_right_layer, sleep_restful_string);
+	}
 	else{
-		printf("Invalid bottem right Identifier");
-		printf("Recieved: %s", bottemRight);
+	//	printf("Invalid bottem right Identifier");
+	//	printf("Recieved: %s", bottemRight);
 	}
 }
 
@@ -1073,23 +1186,23 @@ static void update_bot_right(){
 //-----------------------------------------------------------------------------------------------------
 
 static void update_bot_middle(){
-	printf("Ditermining bot left setting");
+	//printf("Ditermining bot middle setting");
 	if (strcmp(bottemMiddle, "WeatherUpdateTime") == 0){
-		printf("bot_mid setting to: WeatherUpdateTime");
+	//	printf("bot_mid setting to: WeatherUpdateTime");
 		text_layer_set_text(s_bottem_middle_layer, calculate_data_time_difference());
 	}
 	else if (strcmp(bottemMiddle, "CaloriesBurned") == 0){
-		printf("bot_mid setting to: CaloriesBurned");
+	//	printf("bot_mid setting to: CaloriesBurned");
 		text_layer_set_text(s_bottem_middle_layer, calorie_count_str);
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), calories_burned_update_proc);
 	}
 	else if (strcmp(bottemMiddle, "TimeSlept") == 0){
-		printf("bot_mid setting to: TimeSlept");
+	//	printf("bot_mid setting to: TimeSlept");
 		text_layer_set_text(s_bottem_middle_layer, sleep_time_string);
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), time_slept_update_proc);
 	}
 	else if (strcmp(bottemMiddle, "BatteryChargeTime") == 0){
-		printf("bot_mid setting to: BatteryChargeTime");
+	//	printf("bot_mid setting to: BatteryChargeTime");
 		text_layer_set_text(s_bottem_middle_layer, calculate_battery_time_difference());
 		
 		//layer_set_update_proc(text_layer_get_layer(s_bottem_left_layer), battery_charge_time_update_proc);
@@ -1097,20 +1210,26 @@ static void update_bot_middle(){
 	else if(strcmp(bottemMiddle, "WindSpeed") == 0){
 		text_layer_set_text(s_bottem_middle_layer, updateWindSpeed());
 	}
+	else if(strcmp(bottemLeft, "ActiveCalories") == 0){
+		text_layer_set_text(s_bottem_middle_layer, active_calorie_count_str);
+	}
+	else if(strcmp(bottemLeft, "RestfulSleep") == 0){
+		text_layer_set_text(s_bottem_middle_layer, sleep_restful_string);
+	}
 	else{
-		printf("Invalid bottem Middle Identifier");
-		printf("Recieved: %s", bottemMiddle);
+	//	printf("Invalid bottem Middle Identifier");
+	//	printf("Recieved: %s", bottemMiddle);
 	}
 }
 
 static void updateDisplay(){
 	update_bot_left();
 	update_bot_right();
-	printf("Going to bot mid");
 	update_bot_middle();
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
+	if(!error_state){
 	if (accelBuffer > 0){
 		accelBuffer--;
 	}
@@ -1138,7 +1257,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 			if (second_counter > 0){
 				second_counter--;
 			}
-			update_time();          
+			update_time();
 			update_step_average();
 			calculate_data_time_difference();
 			calculate_battery_time_difference();
@@ -1160,6 +1279,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 		else{
 			asleep = false;
 		}
+	}
 	}
 }
 
@@ -1205,15 +1325,8 @@ static void main_window_load(Window *window) {
 		layer_add_child(window_layer,s_battery_behind_clock);
 	}
 
-  // Create GBitmap
-  //s_background_bitmap = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BACKGROUND);
 
-  // Create BitmapLayer to display the GBitmap
-  //s_background_layer = bitmap_layer_create(bounds);
 
-  // Set the bitmap onto the layer and add to the window
-  //bitmap_layer_set_bitmap(s_background_layer, s_background_bitmap);
-  //layer_add_child(window_layer, bitmap_layer_get_layer(s_background_layer));
 
   // Create the TextLayer with specific bounds
 	s_time_layer = text_layer_create(
@@ -1259,31 +1372,7 @@ static void main_window_load(Window *window) {
 	layer_set_update_proc(s_grid_background, grid_update_proc);
 	layer_add_child(window_layer,s_grid_background);
 
-	s_bluetooth_off = gbitmap_create_with_resource(RESOURCE_ID_BLUETOOTH_OFF);
-	s_bluetooth_image = bitmap_layer_create(bounds);
-	bitmap_layer_set_bitmap(s_bluetooth_image, s_bluetooth_off);
-	layer_set_frame(bitmap_layer_get_layer(s_bluetooth_image), GRect(123, -1, 26, 26));
-	layer_add_child(window_layer,bitmap_layer_get_layer(s_bluetooth_image));
-	layer_set_update_proc(bitmap_layer_get_layer(s_bluetooth_image), bluetooth_off_proc);
-
-	s_bluetooth_on = gbitmap_create_with_resource(RESOURCE_ID_BLUETOOTH_ON);
-	s_bluetooth_image_on = bitmap_layer_create(bounds);
-	bitmap_layer_set_bitmap(s_bluetooth_image_on, s_bluetooth_on);
-	layer_set_frame(bitmap_layer_get_layer(s_bluetooth_image_on), GRect(123, -1, 26, 26));
-	layer_add_child(window_layer,bitmap_layer_get_layer(s_bluetooth_image_on));
-	layer_set_update_proc(bitmap_layer_get_layer(s_bluetooth_image_on), bluetooth_on_proc);
-
-	bool app_connection = connection_service_peek_pebble_app_connection();
-	if (app_connection){
-		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image_on), false);
-		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image), true);
-		printf("%s", "Pebble Connected!");
-	}
-	else{
-		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image_on), true);
-		layer_set_hidden(bitmap_layer_get_layer(s_bluetooth_image), false);
-		printf("%s", "Pebble Disconnected!");
-	}
+	
 
 
 	s_battery_charge = layer_create(bounds);
@@ -1327,19 +1416,6 @@ static void main_window_load(Window *window) {
 	
 	text_layer_set_text(s_date_layer, getDate() );
 
-	s_steps_above_image = gbitmap_create_with_resource(RESOURCE_ID_STEPS_ABOVE);
-	s_steps_above_layer = bitmap_layer_create(bounds);
-	bitmap_layer_set_bitmap(s_steps_above_layer, s_steps_above_image);
-	layer_set_frame(bitmap_layer_get_layer(s_steps_above_layer), GRect(0, 111, 20, 20));
-	layer_add_child(window_layer,bitmap_layer_get_layer(s_steps_above_layer));
-	layer_set_update_proc(bitmap_layer_get_layer(s_steps_above_layer), steps_above_update_proc);
-
-	s_steps_below_image = gbitmap_create_with_resource(RESOURCE_ID_STEPS_BELOW);
-	s_steps_below_layer = bitmap_layer_create(bounds);
-	bitmap_layer_set_bitmap(s_steps_below_layer, s_steps_below_image);
-	layer_set_frame(bitmap_layer_get_layer(s_steps_below_layer), GRect(0, 111, 20, 20));
-	layer_add_child(window_layer,bitmap_layer_get_layer(s_steps_below_layer));
-	layer_set_update_proc(bitmap_layer_get_layer(s_steps_below_layer), steps_below_update_proc);
 	
 
 	update_step_average();
@@ -1380,7 +1456,7 @@ static void main_window_load(Window *window) {
 	calculate_battery_time_difference();
     
     s_bottem_middle_layer = text_layer_create(GRect(0, 153, 144, 25));
-    text_layer_set_text_color(s_bottem_middle_layer, GColorWhite);
+    text_layer_set_text_color(s_bottem_middle_layer, bottem_middle_color);
     text_layer_set_background_color(s_bottem_middle_layer, GColorClear);
 	text_layer_set_text_alignment(s_bottem_middle_layer, GTextAlignmentCenter);
 	text_layer_set_font(s_bottem_middle_layer, s_battery_font);
@@ -1417,8 +1493,12 @@ static void main_window_load(Window *window) {
 	layer_add_child(window_layer,bitmap_layer_get_layer(s_battery_charging_layer));
 	
 	temp_text_attributes = graphics_text_attributes_create();
-	layer_set_hidden(bitmap_layer_get_layer(s_steps_above_layer), true);
-	layer_set_hidden(bitmap_layer_get_layer(s_steps_below_layer), true);
+	
+	
+	s_bluetooth_image_drawn = layer_create(GRect(125, 1, 30, 30));
+	layer_set_update_proc(s_bluetooth_image_drawn, bluetooth_image_drawn_update_proc);
+	layer_add_child(window_layer,s_bluetooth_image_drawn);
+	
 
 
 
@@ -1454,21 +1534,44 @@ static void main_window_load(Window *window) {
 }
 
 static void main_window_unload(Window *window) {
+	//Destroy Layers
+	printf("hi1");
 	layer_destroy(s_graph_background);
-  // Destroy TextLayer
+	layer_destroy(s_grid_background);
+	layer_destroy(s_battery_charge);
+	layer_destroy(s_battery_behind_clock);
+	layer_destroy(s_step_arrow_layer);
+	layer_destroy(s_bluetooth_image_drawn);	
+	printf("hi2");
+  // Destroy TextLayers
 	text_layer_destroy(s_time_layer);
-
-  // Unload GFont
-	fonts_unload_custom_font(s_time_font);
-
-  // Destroy GBitmap
-	gbitmap_destroy(s_background_bitmap);
-
-  // Destroy BitmapLayer
-	bitmap_layer_destroy(s_background_layer);
-
-  // Destroy weather elements
 	text_layer_destroy(s_weather_layer);
+	text_layer_destroy(s_battery_charge_layer);
+	text_layer_destroy(s_date_layer);
+	text_layer_destroy(s_steps_layer);
+	text_layer_destroy(s_bottem_left_layer);
+	text_layer_destroy(s_bottem_right_layer);
+	text_layer_destroy(s_bottem_middle_layer);
+	text_layer_destroy(s_sleep_layer);
+	text_layer_destroy(s_humidity_layer);
+	text_layer_destroy(s_bgcolor_layer);
+	text_layer_destroy(s_seconds_layer);
+	text_layer_destroy(s_wind_speed_layer);
+	printf("hi3");
+	//Destroy Bitmap Layers
+	bitmap_layer_destroy(s_battery_charging_layer);
+	
+	
+
+	
+	printf("hi4");
+  // Unload GFont
+	//fonts_unload_custom_font(s_time_font);
+	//fonts_unload_custom_font(s_battery_font);
+	//fonts_unload_custom_font(s_weather_font);
+	//fonts_unload_custom_font(s_date_font);
+
+
 }
 
 static void sleep_window_load(Window *window){
@@ -1487,6 +1590,29 @@ static void sleep_window_load(Window *window){
 
 static void sleep_window_unload(Window *window){
 	text_layer_destroy(s_sleep_layer);
+}
+
+static void showErrorWindow(char* error){
+	error_state = true;
+	window_stack_push(s_error_window, true);
+	text_layer_set_text(s_error_textLayer, error);
+}
+
+static void error_window_load(Window *window){
+	Layer *window_layer = window_get_root_layer(window);
+	GRect bounds = layer_get_bounds(window_layer);
+	
+	s_error_textLayer = text_layer_create(bounds);
+	text_layer_set_background_color(s_error_textLayer, GColorBlack);
+	text_layer_set_text_color(s_error_textLayer, GColorWhite);
+	text_layer_set_text_alignment(s_error_textLayer, GTextAlignmentCenter);
+	text_layer_set_overflow_mode(s_error_textLayer, GTextOverflowModeWordWrap);
+	text_layer_set_font(s_error_textLayer, s_date_font);
+	layer_add_child(window_layer,text_layer_get_layer(s_error_textLayer));
+}
+
+static void error_window_unload(Window *window){
+	text_layer_destroy(s_error_textLayer);
 }
 
 
@@ -1542,12 +1668,12 @@ static void checkStorage(){
 		numKeys++;
 	}
 	if(!persist_exists(KEY_GRID_COLOR)){
-		GColor gridcolor = GColorGreen;
+		GColor gridcolor = GColorIslamicGreen;
 		persist_write_data(KEY_GRID_COLOR, &gridcolor, sizeof(gridcolor));
 		numKeys++;
 	}
 	if(!persist_exists(KEY_BATTERY_COLOR)){
-		GColor batterycolor = GColorIslamicGreen;
+		GColor batterycolor = GColorWhite;
 		persist_write_data(KEY_BATTERY_COLOR, &batterycolor, sizeof(batterycolor));
 		numKeys++;
 	}
@@ -1597,7 +1723,7 @@ static void checkStorage(){
 		numKeys++;
 	} 
 	if(!persist_exists(KEY_BATTERY_LIFE_COLOR)){
-		defaultColor = GColorWhite;
+		defaultColor = GColorIslamicGreen;
 		persist_write_data(KEY_BATTERY_LIFE_COLOR, &defaultColor, sizeof(defaultColor));
 		numKeys++;
 	} 
@@ -1612,7 +1738,7 @@ static void checkStorage(){
 		numKeys++;
 	} 
 	if(!persist_exists(KEY_GRAPH_LINE_COLOR)){
-		defaultColor = GColorWhite;
+		defaultColor = GColorDarkGray;
 		persist_write_data(KEY_GRAPH_LINE_COLOR, &defaultColor, sizeof(defaultColor));
 		numKeys++;
 	} 
@@ -1623,14 +1749,36 @@ static void checkStorage(){
 	} 
 	if(!persist_exists(KEY_STEPS_ABOVE_COLOR)){
 		defaultColor = GColorRed;
-		persist_write_data(KEY_BATTERY_OUTLINE_COLOR, &defaultColor, sizeof(defaultColor));
+		persist_write_data(KEY_STEPS_ABOVE_COLOR, &defaultColor, sizeof(defaultColor));
 		numKeys++;
 	} 
 	if(!persist_exists(KEY_STEPS_BELOW_COLOR)){
 		defaultColor = GColorGreen;
-		persist_write_data(KEY_BATTERY_OUTLINE_COLOR, &defaultColor, sizeof(defaultColor));
+		persist_write_data(KEY_STEPS_BELOW_COLOR, &defaultColor, sizeof(defaultColor));
 		numKeys++;
 	} 
+	if(!persist_exists(KEY_GRID_DISCONNECTED_COLOR)){
+		defaultColor = GColorRed;
+		persist_write_data(KEY_GRID_DISCONNECTED_COLOR, &defaultColor, sizeof(defaultColor));
+		numKeys++;
+	}
+	if(!persist_exists(KEY_BOTTEM_MIDDLE_COLOR)){
+		defaultColor = GColorWhite;
+		persist_write_data(KEY_BOTTEM_MIDDLE_COLOR, &defaultColor, sizeof(defaultColor));
+		numKeys++;
+	}
+	if(!persist_exists(KEY_BLUETOOTH_CONNECTED_COLOR)){
+		defaultColor = GColorBlue;
+		persist_write_data(KEY_BLUETOOTH_CONNECTED_COLOR, &defaultColor, sizeof(defaultColor));
+		numKeys++;
+	}
+	if(!persist_exists(KEY_BLUETOOTH_DISCONNECTED_COLOR)){
+		defaultColor = GColorRed;
+		persist_write_data(KEY_BLUETOOTH_DISCONNECTED_COLOR, &defaultColor, sizeof(defaultColor));
+		numKeys++;
+	}
+	
+	
 	
 	//booleans
 	
@@ -1707,6 +1855,11 @@ static void checkStorage(){
 		numKeys++;
 	}
 	
+	//integers
+	if(!persist_exists(KEY_WEATHER_UPDATE_TIME)){
+		persist_write_int(KEY_WEATHER_UPDATE_TIME, 900);
+		numKeys++;
+	}
 	
 	forceWeatherUpdate();
 	
@@ -1878,6 +2031,21 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 		steps_below_color = GColorFromHEX(steps_below_color_t->value->int32);
 		persist_write_data(KEY_STEPS_BELOW_COLOR, &steps_below_color, sizeof(steps_below_color));
 	}
+	Tuple *grid_disc_color_t = dict_find(iter, KEY_GRID_DISCONNECTED_COLOR);
+	if(grid_disc_color_t) {
+		GColor grid_disc_color = GColorFromHEX(grid_disc_color_t->value->int32);
+		persist_write_data(KEY_GRID_DISCONNECTED_COLOR, &grid_disc_color, sizeof(grid_disc_color));
+	}
+	Tuple *bt_disc_color_t = dict_find(iter, KEY_BLUETOOTH_DISCONNECTED_COLOR);
+	if(bt_disc_color_t) {
+		GColor bt_disc_color = GColorFromHEX(bt_disc_color_t->value->int32);
+		persist_write_data(KEY_BLUETOOTH_DISCONNECTED_COLOR, &bt_disc_color, sizeof(bt_disc_color));
+	}
+	Tuple *bt_con_color_t = dict_find(iter, KEY_BLUETOOTH_CONNECTED_COLOR);
+	if(bt_con_color_t) {
+		GColor bt_con_color = GColorFromHEX(bt_con_color_t->value->int32);
+		persist_write_data(KEY_BLUETOOTH_CONNECTED_COLOR, &bt_con_color, sizeof(bt_con_color));
+	}
 
   // Read boolean preferences
 	Tuple *second_tick_t = dict_find(iter, KEY_SECONDS_TICK);
@@ -1915,16 +2083,15 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 		bool four_digit_year = four_digit_year_t->value->int32 == 1;
 		persist_write_data(KEY_FOUR_DIGIT_YEAR_TOGGLE, &four_digit_year, sizeof(four_digit_year));
 	}
-	
-	
-	
-	
-        //read slider preferences
-	Tuple *seconds_count_t = dict_find(iter, KEY_SECONDS_COUNT);
-	if(seconds_count_t) {
-		num_seconds = seconds_count_t->value->int32;
-		persist_write_data(KEY_SECONDS_COUNT, &num_seconds, sizeof(num_seconds));
+	Tuple *bot_mid_color_t = dict_find(iter, KEY_BOTTEM_MIDDLE_COLOR);
+	if(bot_mid_color_t) {
+		GColor bot_mid_color = GColorFromHEX(bot_mid_color_t->value->int32);
+		persist_write_data(KEY_BOTTEM_MIDDLE_COLOR, &bot_mid_color, sizeof(bot_mid_color));
 	}
+	
+	
+	
+	
 	
 	//read string preferences
 	Tuple *bottem_left_t = dict_find(iter, KEY_BOTTEM_LEFT);
@@ -1954,7 +2121,19 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 		char *date_seporator = date_seporator_t->value->cstring;
 		persist_write_string(KEY_DATE_SEPORATOR, date_seporator);
 	}
-
+	
+	//read integer prefereences
+	Tuple *seconds_count_t = dict_find(iter, KEY_SECONDS_COUNT);
+	if(seconds_count_t) {
+		num_seconds = seconds_count_t->value->int32;
+		persist_write_data(KEY_SECONDS_COUNT, &num_seconds, sizeof(num_seconds));
+	}
+	Tuple *weather_update_time_t = dict_find(iter, KEY_WEATHER_UPDATE_TIME);
+	if(weather_update_time_t) {
+		int weatherUpdateTime = weather_update_time_t->value->int32* 60;
+		printf("Recieved %d weather update time", weatherUpdateTime);
+		persist_write_int(KEY_WEATHER_UPDATE_TIME, weatherUpdateTime);
+	}
 
 	Tuple *animations_t = dict_find(iter, KEY_ANIMATIONS);
 	if(animations_t) {
@@ -1977,10 +2156,19 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
 		printf("Pebble JS is ready in C");
 		// PebbleKit JS is ready! Safe to send messages
 		s_js_ready = true;
+		return;
+	}
+	if (dict_find(iterator, KEY_ERROR_CODE) != 0){
+		printf("Recieved error code '%s'", dict_find(iterator, KEY_ERROR_CODE)->value->cstring);
+		static char errorCode[100];
+		snprintf(errorCode, sizeof(errorCode), "%s", dict_find(iterator, KEY_ERROR_CODE)->value->cstring);
+		showErrorWindow(errorCode);
+		return;
 	}
 	if (dict_find(iterator, KEY_HUMIDITY) == NULL){
 		printf("Recieved configuration Data");
 		prv_inbox_received_handler(iterator, context);
+		return;
 	}
 	else{
 		printf("Recieved Weather Data");
@@ -2106,6 +2294,13 @@ static void init() {
 		.load = sleep_window_load,
 		.unload = sleep_window_unload
 	});
+	s_error_window = window_create();
+	printf("Initing errors");
+	window_set_window_handlers(s_error_window, (WindowHandlers){
+		.load = error_window_load,
+		.unload = error_window_unload
+	});
+	printf("Done");
 
   // Show the Window on the watch, with animated=true
 	window_stack_push(s_main_window, true);
@@ -2137,6 +2332,7 @@ static void init() {
 	app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
 	printf("%s", "Opened AppMessage");
 }
+
 
 
 

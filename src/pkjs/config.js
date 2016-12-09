@@ -43,7 +43,7 @@ module.exports = [
 	},
 	{
 		"type": "input",
-		"messageKey": "ManualWUndergroundAPIKey ",
+		"messageKey": "ManualWUndergroundAPIKey",
 		"defaultValue": "",
 		"label": "Weather Underground API Key",
 		"description": "",
@@ -107,12 +107,20 @@ module.exports = [
 			"value": "WeatherUpdateTime" 
 		},
 		{ 
-			"label": "Calories Burned",
+			"label": "Total Calories Burned",
 			"value": "CaloriesBurned" 
 		},
 		{ 
-			"label": "Time Slept",
+			"label": "Active Calories Burned",
+			"value": "ActiveCalories" 
+		},
+		{ 
+			"label": "Total Time Slept",
 			"value": "TimeSlept" 
+		},
+		{ 
+			"label": "Deep Sleep Time",
+			"value": "RestfulSleep" 
 		},
 		{ 
 			"label": "Time Since Last Battery Charge",
@@ -135,12 +143,20 @@ module.exports = [
 			"value": "WeatherUpdateTime" 
 		},
 		{ 
-			"label": "Calories Burned",
+			"label": "Total Calories Burned",
 			"value": "CaloriesBurned" 
 		},
 		{ 
-			"label": "Time Slept",
+			"label": "Active Calories Burned",
+			"value": "ActiveCalories" 
+		},
+		{ 
+			"label": "Total Time Slept",
 			"value": "TimeSlept" 
+		},
+		{ 
+			"label": "Deep Sleep Time",
+			"value": "RestfulSleep" 
 		},
 		{ 
 			"label": "Time Since Last Battery Charge",
@@ -163,12 +179,20 @@ module.exports = [
 			"value": "WeatherUpdateTime" 
 		},
 		{ 
-			"label": "Calories Burned",
+			"label": "Total Calories Burned",
 			"value": "CaloriesBurned" 
 		},
 		{ 
-			"label": "Time Slept",
+			"label": "Active Calories Burned",
+			"value": "ActiveCalories" 
+		},
+		{ 
+			"label": "Total Time Slept",
 			"value": "TimeSlept" 
+		},
+		{ 
+			"label": "Deep Sleep Time",
+			"value": "RestfulSleep" 
 		},
 		{ 
 			"label": "Time Since Last Battery Charge",
@@ -263,6 +287,12 @@ module.exports = [
 	},
 	{
 		"type": "color",
+		"messageKey": "GridDisconnectedColor",
+		"defaultValue": "0xFF0000",
+		"label": "Grid Disconnected Color"
+	},
+	{
+		"type": "color",
 		"messageKey": "BatteryChargeColor",
 		"defaultValue": "0x00AA00",
 		"label": "Battery Charge Color"
@@ -305,11 +335,17 @@ module.exports = [
 	},
 	{
 		"type": "color",
-		"messageKey": "StepsBelowColor",
-		"defaultValue": "0xFF0000",
-		"label": "Below Step Average Color"
+		"messageKey": "BTConnectedColor",
+		"defaultValue": "0x0000FF",
+		"label": "Bluetooth Icon Connected Color"
 	},
-
+	{
+		"type": "color",
+		"messageKey": "BTDisconnectedColor",
+		"defaultValue": "0xFF0000",
+		"label": "Bluetooth Icon Disconnected Color"
+	},
+	
 	]
 },
 {
@@ -331,6 +367,16 @@ module.exports = [
 		"defaultValue": 10,
 		"label": "Seconds Count",
 		"description": "How long to show the seconds counter after you shake the watch.",
+		"min": 1,
+		"max": 60,
+		"step": 1
+	},
+	{
+		"type": "slider",
+		"messageKey": "WeatherRefresh",
+		"defaultValue": 30,
+		"label": "Weather Refresh Rate",
+		"description": "How frequently in minutes to get new weather information.",
 		"min": 1,
 		"max": 60,
 		"step": 1
@@ -430,6 +476,12 @@ module.exports = [
 		"defaultValue": "0XFFFFFF",
 		"label": "Weather Color"
 	},
+	{
+		"type": "color",
+		"messageKey": "BottemMiddleColor",
+		"defaultValue": "0xFFFFFF",
+		"label": "Bottem Middle Color"
+	}
 	]
 },
 {

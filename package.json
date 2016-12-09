@@ -1,5 +1,5 @@
 {
-    "author": "Pebble",
+    "author": "Matthew Vogt",
     "dependencies": {
         "pebble-clay": "^1.0.2"
     },
@@ -15,6 +15,8 @@
         "enableMultiJS": true,
         "messageKeys": {
             "Animations": 1007,
+            "BTConnectedColor": 1048,
+            "BTDisconnectedColor": 1049,
             "BackgroundColor": 1004,
             "BatteryBehindClockToggle": 1023,
             "BatteryChargeColor": 1008,
@@ -25,6 +27,7 @@
             "BatteryUnchargedColor": 1011,
             "BottemLeft": 1037,
             "BottemMiddle": 1039,
+            "BottemMiddleColor": 1047,
             "BottemRight": 1038,
             "CelciusToggle": 1035,
             "CurentWindData": 1033,
@@ -37,6 +40,7 @@
             "GraphLineColor": 1021,
             "GridColor": 1005,
             "GridColorToggle": 1031,
+            "GridDisconnectedColor": 1046,
             "HumidityColor": 1019,
             "JSReady": 10001,
             "ManualDarkSkyAPIKey": 1027,
@@ -56,7 +60,9 @@
             "TripleShake": 1036,
             "WeatherColor": 1020,
             "WeatherProvider": 1028,
+            "WeatherRefresh": 1045,
             "cond0": 1002,
+            "errorCode": 10002,
             "humidity": 1000,
             "inboxHandler": 10000,
             "pop0": 200,
@@ -271,18 +277,6 @@
                     "type": "bitmap"
                 },
                 {
-                    "file": "images/Steps_below",
-                    "name": "STEPS_BELOW",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
-                    "file": "images/Steps_above",
-                    "name": "STEPS_ABOVE",
-                    "targetPlatforms": null,
-                    "type": "bitmap"
-                },
-                {
                     "file": "images/Lightningbolt",
                     "memoryFormat": "1Bit",
                     "name": "LIGHTNINGBOLT",
@@ -318,7 +312,10 @@
         },
         "sdkVersion": "3",
         "targetPlatforms": [
-            "basalt"
+            "aplite",
+            "basalt",
+            "diorite",
+            "emery"
         ],
         "uuid": "41c53f8f-16da-4ba3-bf3e-a90aa036497e",
         "watchapp": {
