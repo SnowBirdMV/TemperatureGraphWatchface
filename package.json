@@ -26,9 +26,11 @@
             "BatteryTime": 1003,
             "BatteryUnchargedColor": 1011,
             "BottemLeft": 1037,
+            "BottemLeftColor": 1051,
             "BottemMiddle": 1039,
             "BottemMiddleColor": 1047,
             "BottemRight": 1038,
+            "BottemRightColor": 1050,
             "CelciusToggle": 1035,
             "CurentWindData": 1033,
             "CurentWindDirection": 1034,
@@ -322,5 +324,5 @@
             "watchface": true
         }
     },
-    "version": "1.0.0"
+    "version": "1.3.0"
 }

@@ -57,6 +57,8 @@
 #define KEY_BOTTEM_MIDDLE_COLOR 1047
 #define KEY_BLUETOOTH_CONNECTED_COLOR 1048
 #define KEY_BLUETOOTH_DISCONNECTED_COLOR 1049
+#define KEY_BOTTEM_RIGHT_COLOR 1050
+#define KEY_BOTTEM_LEFT_COLOR 1051
 
 #define KEY_ERROR_CODE 10002
 
@@ -135,6 +137,8 @@ GColor grid_disconnected_color;
 GColor bottem_middle_color;
 GColor bt_connected_color;
 GColor bt_disconnected_color;
+GColor bottem_left_color;
+GColor bottem_right_color;
 
 bool asleep = false;
 bool bat_behind_graph;
@@ -233,6 +237,8 @@ static void storeOptions(){
 	persist_read_data(KEY_BOTTEM_MIDDLE_COLOR, &bottem_middle_color, sizeof(bottem_middle_color));
 	persist_read_data(KEY_BLUETOOTH_CONNECTED_COLOR, &bt_connected_color, sizeof(bt_connected_color));
 	persist_read_data(KEY_BLUETOOTH_DISCONNECTED_COLOR, &bt_disconnected_color, sizeof(bt_disconnected_color));
+	persist_read_data(KEY_BOTTEM_RIGHT_COLOR, &bottem_left_color, sizeof(bottem_left_color));
+	persist_read_data(KEY_BOTTEM_LEFT_COLOR, &bottem_right_color, sizeof(bottem_right_color));
 
 	
 	//booleans
@@ -1104,6 +1110,7 @@ static char* updateWindSpeed(){
 //-----------------------------------------------------------------------------------------------------
 
 static void update_bot_left(){
+	text_layer_set_text_color(s_bottem_left_layer, bottem_left_color);
 	//printf("Ditermining bot left setting");
 	if (strcmp(bottemLeft, "WeatherUpdateTime") == 0){
 		//printf("bot_left setting to: WeatherUpdateTime");
@@ -1145,6 +1152,7 @@ static void update_bot_left(){
 //-----------------------------------------------------------------------------------------------------
 
 static void update_bot_right(){
+	text_layer_set_text_color(s_bottem_right_layer, bottem_right_color);
 	//printf("Ditermining bot right setting");
 	if (strcmp(bottemRight, "WeatherUpdateTime") == 0){
 	//	printf("bot_right setting to: WeatherUpdateTime");
@@ -1186,6 +1194,7 @@ static void update_bot_right(){
 //-----------------------------------------------------------------------------------------------------
 
 static void update_bot_middle(){
+	text_layer_set_text_color(s_bottem_middle_layer, bottem_middle_color);
 	//printf("Ditermining bot middle setting");
 	if (strcmp(bottemMiddle, "WeatherUpdateTime") == 0){
 	//	printf("bot_mid setting to: WeatherUpdateTime");
@@ -1673,7 +1682,7 @@ static void checkStorage(){
 		numKeys++;
 	}
 	if(!persist_exists(KEY_BATTERY_COLOR)){
-		GColor batterycolor = GColorWhite;
+		GColor batterycolor = GColorIslamicGreen;
 		persist_write_data(KEY_BATTERY_COLOR, &batterycolor, sizeof(batterycolor));
 		numKeys++;
 	}
@@ -1748,12 +1757,12 @@ static void checkStorage(){
 		numKeys++;
 	} 
 	if(!persist_exists(KEY_STEPS_ABOVE_COLOR)){
-		defaultColor = GColorRed;
+		defaultColor = GColorGreen;
 		persist_write_data(KEY_STEPS_ABOVE_COLOR, &defaultColor, sizeof(defaultColor));
 		numKeys++;
 	} 
 	if(!persist_exists(KEY_STEPS_BELOW_COLOR)){
-		defaultColor = GColorGreen;
+		defaultColor = GColorRed;
 		persist_write_data(KEY_STEPS_BELOW_COLOR, &defaultColor, sizeof(defaultColor));
 		numKeys++;
 	} 
@@ -1777,8 +1786,16 @@ static void checkStorage(){
 		persist_write_data(KEY_BLUETOOTH_DISCONNECTED_COLOR, &defaultColor, sizeof(defaultColor));
 		numKeys++;
 	}
-	
-	
+	if(!persist_exists(KEY_BOTTEM_RIGHT_COLOR)){
+		defaultColor = GColorWhite;
+		persist_write_data(KEY_BOTTEM_RIGHT_COLOR, &GColorWhite, sizeof(GColorWhite));
+		numKeys++;
+	}
+	if(!persist_exists(KEY_BOTTEM_LEFT_COLOR)){
+		defaultColor = GColorWhite;
+		persist_write_data(KEY_BOTTEM_LEFT_COLOR, &GColorWhite, sizeof(GColorWhite));
+		numKeys++;
+	}
 	
 	//booleans
 	
@@ -2045,6 +2062,16 @@ static void prv_inbox_received_handler(DictionaryIterator *iter, void *context) 
 	if(bt_con_color_t) {
 		GColor bt_con_color = GColorFromHEX(bt_con_color_t->value->int32);
 		persist_write_data(KEY_BLUETOOTH_CONNECTED_COLOR, &bt_con_color, sizeof(bt_con_color));
+	}
+	Tuple *bottem_right_c_t = dict_find(iter, KEY_BOTTEM_RIGHT_COLOR);
+	if(bottem_right_c_t) {
+		GColor bottem_right_c = GColorFromHEX(bottem_right_c_t->value->int32);
+		persist_write_data(KEY_BOTTEM_RIGHT_COLOR, &bottem_right_c, sizeof(bottem_right_c));
+	}
+	Tuple *bottem_left_c_t = dict_find(iter, KEY_BOTTEM_LEFT_COLOR);
+	if(bottem_left_c_t) {
+		GColor bottem_left_c = GColorFromHEX(bottem_left_c_t->value->int32);
+		persist_write_data(KEY_BOTTEM_LEFT_COLOR, &bottem_left_c, sizeof(bottem_left_c));
 	}
 
   // Read boolean preferences

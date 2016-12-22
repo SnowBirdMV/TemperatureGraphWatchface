@@ -271,88 +271,6 @@ module.exports = [
 	"items": [
 	{
 		"type": "heading",
-		"defaultValue": "Colors"
-	},
-	{
-		"type": "color",
-		"messageKey": "BackgroundColor",
-		"defaultValue": "0x000000",
-		"label": "Background Color"
-	},
-	{
-		"type": "color",
-		"messageKey": "GridColor",
-		"defaultValue": "0x00FF00",
-		"label": "Grid Color"
-	},
-	{
-		"type": "color",
-		"messageKey": "GridDisconnectedColor",
-		"defaultValue": "0xFF0000",
-		"label": "Grid Disconnected Color"
-	},
-	{
-		"type": "color",
-		"messageKey": "BatteryChargeColor",
-		"defaultValue": "0x00AA00",
-		"label": "Battery Charge Color"
-	},
-	{
-		"type": "color",
-		"messageKey": "TempLineColor",
-		"defaultValue": "0xFF0000",
-		"label": "Temprature line color"
-	},
-	{
-		"type": "color",
-		"messageKey": "popGraphColor",
-		"defaultValue": "0x0000FF",
-		"label": "Precipitation Graph Color"
-	},
-	{
-		"type": "color",
-		"messageKey": "BatteryUnchargedColor",
-		"defaultValue": "0xAA0000",
-		"label": "Battery dead color"
-	},
-	{
-		"type": "color",
-		"messageKey": "GraphLineColor",
-		"defaultValue": "0xAA0000",
-		"label": "Graph Marker Color"
-	},
-	{
-		"type": "color",
-		"messageKey": "BatteryOutlineColor",
-		"defaultValue": "0x555555",
-		"label": "Battery Outline Color"
-	},
-	{
-		"type": "color",
-		"messageKey": "StepsAboveColor",
-		"defaultValue": "0x00FF00",
-		"label": "Above Step Average Color"
-	},
-	{
-		"type": "color",
-		"messageKey": "BTConnectedColor",
-		"defaultValue": "0x0000FF",
-		"label": "Bluetooth Icon Connected Color"
-	},
-	{
-		"type": "color",
-		"messageKey": "BTDisconnectedColor",
-		"defaultValue": "0xFF0000",
-		"label": "Bluetooth Icon Disconnected Color"
-	},
-	
-	]
-},
-{
-	"type": "section",
-	"items": [
-	{
-		"type": "heading",
 		"defaultValue": "More Settings"
 	},
 	{
@@ -478,10 +396,104 @@ module.exports = [
 	},
 	{
 		"type": "color",
+		"messageKey": "BottemLeftColor",
+		"defaultValue": "0xFFFFFF",
+		"label": "Bottem Left Color"
+	},
+	{
+		"type": "color",
 		"messageKey": "BottemMiddleColor",
 		"defaultValue": "0xFFFFFF",
 		"label": "Bottem Middle Color"
+	},
+	{
+		"type": "color",
+		"messageKey": "BottemRightColor",
+		"defaultValue": "0xFFFFFF",
+		"label": "Bottem Right Color"
 	}
+	]
+},
+{
+	"type": "section",
+	"items": [
+	{
+		"type": "heading",
+		"defaultValue": "Colors"
+	},
+	{
+		"type": "color",
+		"messageKey": "BackgroundColor",
+		"defaultValue": "0x000000",
+		"label": "Background Color"
+	},
+	{
+		"type": "color",
+		"messageKey": "GridColor",
+		"defaultValue": "0x00FF00",
+		"label": "Grid Color"
+	},
+	{
+		"type": "color",
+		"messageKey": "GridDisconnectedColor",
+		"defaultValue": "0xFF0000",
+		"label": "Grid Disconnected Color"
+	},
+	{
+		"type": "color",
+		"messageKey": "BatteryChargeColor",
+		"defaultValue": "0x00AA00",
+		"label": "Battery Charge Color"
+	},
+	{
+		"type": "color",
+		"messageKey": "TempLineColor",
+		"defaultValue": "0xFF0000",
+		"label": "Temprature line color"
+	},
+	{
+		"type": "color",
+		"messageKey": "popGraphColor",
+		"defaultValue": "0x0000FF",
+		"label": "Precipitation Graph Color"
+	},
+	{
+		"type": "color",
+		"messageKey": "BatteryUnchargedColor",
+		"defaultValue": "0xAA0000",
+		"label": "Battery dead color"
+	},
+	{
+		"type": "color",
+		"messageKey": "GraphLineColor",
+		"defaultValue": "0xAA0000",
+		"label": "Graph Marker Color"
+	},
+	{
+		"type": "color",
+		"messageKey": "BatteryOutlineColor",
+		"defaultValue": "0x555555",
+		"label": "Battery Outline Color"
+	},
+	{
+		"type": "color",
+		"messageKey": "StepsAboveColor",
+		"defaultValue": "0x00FF00",
+		"label": "Above Step Average Color"
+	},
+	{
+		"type": "color",
+		"messageKey": "BTConnectedColor",
+		"defaultValue": "0x0000FF",
+		"label": "Bluetooth Icon Connected Color"
+	},
+	{
+		"type": "color",
+		"messageKey": "BTDisconnectedColor",
+		"defaultValue": "0xFF0000",
+		"label": "Bluetooth Icon Disconnected Color"
+	},
+	
 	]
 },
 {

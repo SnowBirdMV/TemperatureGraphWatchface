@@ -117,12 +117,18 @@ function locationSuccess(pos) {
 			dictionary.CurentWindDirection = windDirection;
 
 			// Temperature in Kelvin requires adjustment
-			//console.log(json.hourly_forecast[0].temp.english);
+			//console.log(json.hourly_forecast[0].temp.english);1
+			var temperature;
 			
             var humidity = parseInt(json.hourly_forecast[0].humidity);
             dictionary["humidity"] = humidity;
 			for (var i = 0; i < 20; i++){
-				var temperature = Math.round(json.hourly_forecast[i].temp.english);
+				if(parseFloat(localStorage.getItem("celcius"))){
+					temperature = Math.round(json.hourly_forecast[i].temp.metric);
+				}
+				else{
+					temperature = Math.round(json.hourly_forecast[i].temp.english);
+				}
 				//console.log("Temperature is " + temperature);
 				
 				// Conditions
@@ -136,7 +142,6 @@ function locationSuccess(pos) {
                 //console.log(dictionary["pop" + i]);
 				//console.log("Conditions are " + conditions);
 			}
-			
 			
 			
 			// Assemble dictionary using our keys
@@ -322,7 +327,7 @@ function checkMasterKey(){
 			  localStorage.setItem("MasterKeyWUnderground", result.keys.weather.wu);
 		  }
       }
-		
+		getWeather();
     };
   
     xhr.send();
