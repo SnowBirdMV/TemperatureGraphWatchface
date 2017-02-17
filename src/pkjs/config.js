@@ -103,7 +103,7 @@ module.exports = [
 		"label": "Bottem Left",
 		"options": [
 		{ 
-			"label": "Time since last wetather update", 
+			"label": "Time since last weather update", 
 			"value": "WeatherUpdateTime" 
 		},
 		{ 
@@ -343,55 +343,55 @@ module.exports = [
 	{
 		"type": "color",
 		"messageKey": "TimeColor",
-		"defaultValue": "0XFFFFFF",
+		"defaultValue": "0xFFFFFF",
 		"label": "Time Color"
 	},
 	{
 		"type": "color",
 		"messageKey": "DateColor",
-		"defaultValue": "0XFFFFFF",
+		"defaultValue": "0xFFFFFF",
 		"label": "Date Color"
 	},
 	{
 		"type": "color",
 		"messageKey": "BatteryPercentageColor",
-		"defaultValue": "0XFFFFFF",
+		"defaultValue": "0xFFFFFF",
 		"label": "Battery Percentage Color"
 	},
 	{
 		"type": "color",
 		"messageKey": "TempNumberColor",
-		"defaultValue": "0XFFFFFF",
+		"defaultValue": "0xFFFFFF",
 		"label": "Temp Number Color"
 	},
 	{
 		"type": "color",
 		"messageKey": "StepsColor",
-		"defaultValue": "0XFFFFFF",
+		"defaultValue": "0xFFFFFF",
 		"label": "Steps Color"
 	},
 	{
 		"type": "color",
 		"messageKey": "DataTimeColor",
-		"defaultValue": "0XFFFFFF",
+		"defaultValue": "0xFFFFFF",
 		"label": "Data Timer Color"
 	},
 	{
 		"type": "color",
 		"messageKey": "BatteryLifeColor",
-		"defaultValue": "0XFFFFFF",
+		"defaultValue": "0xFFFFFF",
 		"label": "Battery Life Color"
 	},
 	{
 		"type": "color",
 		"messageKey": "HumidityColor",
-		"defaultValue": "0XFFFFFF",
+		"defaultValue": "0xFFFFFF",
 		"label": "Humidity Color"
 	},
 	{
 		"type": "color",
 		"messageKey": "WeatherColor",
-		"defaultValue": "0XFFFFFF",
+		"defaultValue": "0xFFFFFF",
 		"label": "Weather Color"
 	},
 	{
